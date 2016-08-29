@@ -40,7 +40,7 @@ namespace PluginTwitch
         {
             if (isConnected)
                 return;
-
+            Debug.WriteLine("Connect");
             String = string.Format("Starting to connect to twitch as {0}.", username);
             var server = "irc.twitch.tv";
             client.FloodPreventer = new IrcStandardFloodPreventer(4, 2000);
@@ -86,6 +86,7 @@ namespace PluginTwitch
             if (!isConnected)
                 return;
 
+            Debug.WriteLine("JoinChannel");
             messageParser.Reset();
             if(Channel != "")
                 client.Channels.Leave(Channel);
@@ -97,6 +98,8 @@ namespace PluginTwitch
         {
             if (!isConnected || Channel == "")
                 return;
+
+            Debug.WriteLine("LeaveChannel");
 
             messageParser.Reset();
             String = "";

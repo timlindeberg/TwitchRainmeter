@@ -63,6 +63,7 @@
     <ErrorReport>prompt</ErrorReport>
     <NoWarn>1607</NoWarn>
     <Prefer32Bit>false</Prefer32Bit>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>x64\Release\</OutputPath>
@@ -130,9 +131,9 @@
     <Compile Include="IrcDotNet\TwitchIrcClient.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="MessageParser.cs" />
+    <Compile Include="RainmeterAPI.cs" />
     <Compile Include="TwitchClient.cs" />
     <Compile Include="PluginTwitch.cs" />
-    <Compile Include="$(SolutionDir)..\API\RainmeterAPI.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="IrcDotNet\bin\Debug\net40\IrcDotNet.dll" />
@@ -170,6 +171,6 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>"$(SolutionDir)..\API\DllExporter.exe" "$(ConfigurationName)" "$(PlatformName)" "$(TargetDir)\" "$(TargetFileName)"</PostBuildEvent>
+    <PostBuildEvent>"$(SolutionDir)API\DllExporter.exe" "$(ConfigurationName)" "$(PlatformName)" "$(TargetDir)\" "$(TargetFileName)"</PostBuildEvent>
   </PropertyGroup>
 </Project>

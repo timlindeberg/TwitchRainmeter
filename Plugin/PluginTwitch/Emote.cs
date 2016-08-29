@@ -11,7 +11,6 @@ namespace PluginTwitch
         public int ID;
         public int X;
         public int Y;
-        public double height;
         public int start;
         public int end;
 
@@ -20,14 +19,13 @@ namespace PluginTwitch
             this.ID = id;
             this.X = 0;
             this.Y = 0;
-            this.height = 0;
             this.start = start;
             this.end = end;
         }
 
         public override string ToString()
         {
-            return string.Format("ID: {0}, start: {1}, end: {2}", ID, start, end);
+            return string.Format("ID: {0}, start: {1}, end: {2}, X: {3}, Y: {4}", ID, start, end, X, Y);
         }
 
     }
