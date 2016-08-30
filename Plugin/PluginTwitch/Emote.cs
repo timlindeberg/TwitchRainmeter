@@ -6,15 +6,16 @@ using System.Threading.Tasks;
 
 namespace PluginTwitch
 {
-    public class Emote
+    public class Emote : Word
     {
+
         public int ID;
         public int X;
         public int Y;
         public int start;
         public int end;
 
-        public Emote(int id, int start, int end)
+        public Emote(string w, int id, int start, int end) : base(w)
         {
             this.ID = id;
             this.X = 0;
@@ -23,9 +24,11 @@ namespace PluginTwitch
             this.end = end;
         }
 
+        public string GetWord() { return "    ";  }
+
         public override string ToString()
         {
-            return string.Format("ID: {0}, start: {1}, end: {2}, X: {3}, Y: {4}", ID, start, end, X, Y);
+            return string.Format("Emote({0})", ID);
         }
 
     }

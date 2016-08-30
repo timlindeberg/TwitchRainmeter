@@ -15,52 +15,53 @@ namespace PluginTwitch
         public int EmoteSize { get; private set; }
         public List<Emote> Emotes { get; private set; }
 
-        private FixedSizedQueue<Line> queue;
+        private Queue<Line> queue;
         private HashSet<int> beingDownloaded;
         private Font font;
         private WebClient webClient;
-        private int width;
+        private int maxWidth;
+        private int maxHeight;
         private int numSpaces;
-        private string placeHolder;
         private string spaceReplacement;
         private Graphics graphics;
         private StringFormat format;
+        private string emoteDir;
 
 
-        public MessageParser(int lines, int width, Font font)
+        public MessageParser(int width, int height, string emoteDir, Font font)
         {
-            queue = new FixedSizedQueue<Line>(lines);
+            queue = new Queue<Line>();
             beingDownloaded = new HashSet<int>();
             Emotes = new List<Emote>();
             webClient = new WebClient();
 
-            this.width = width;
+            this.maxWidth = width;
+            this.maxHeight = height;
             this.font = font;
+            this.emoteDir = emoteDir;
 
             var bitmap = new Bitmap(1, 1);
             graphics = Graphics.FromImage(bitmap);
             format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
 
             var spaceSize = MeasureString(" ").Width;
-            var size = 25.0; // An emote is generally around 25 pixels
+            var size = 30.0; // An emote is generally around 25 pixels
             var emoteSize = 0.0;
             while(emoteSize < size)
                 emoteSize += spaceSize;
 
             emoteSize -= spaceSize;
             int numSpaces = Convert.ToInt32(emoteSize / spaceSize);
-            for (int i = 0; i <= numSpaces; i++)
-            {
-                placeHolder += "^";
+            for (int i = 0; i < numSpaces; i++)
                 spaceReplacement += " ";
-            }
+
             EmoteSize = Convert.ToInt32(emoteSize);
         }
 
         public void Reset()
         {
             Emotes = new List<Emote>();
-            queue = new FixedSizedQueue<Line>(queue.Size);
+            queue = new Queue<Line>();
         }
         
         public String AddMessage(string user, string message, string tags)
@@ -70,58 +71,57 @@ namespace PluginTwitch
 
             string fullString = prefix + message;
 
-            var replaceEmotes = ReplaceEmotes(fullString, emotes);
-            var wrapped = WordWrap(replaceEmotes, emotes);
-            var replacedPlaceholders = wrapped.Replace(placeHolder, spaceReplacement);
-            var lines = MakeLines(replacedPlaceholders, emotes);
+            var words = GetWords(fullString, emotes);
+            var lines = WordWrap(words);
 
-            Debug.WriteLine("Lines:\n" + string.Join("\n", lines));
+            return BuildNewString(lines):
+        }
 
-            foreach (var l in lines)
-                queue.Enqueue(l);
-
-            StringBuilder sb = new StringBuilder();
-            lock (Emotes)
+        private string BuildNewString(List<Line> lines)
+        {
+            lock (queue)
             {
-                Emotes = new List<Emote>();
-                int lineNum = 0;
-                foreach (var line in queue)
+                lines.ForEach(l => queue.Enqueue(l));
+                ResizeQueue();
+
+                // Calculate image positions and build final string
+                var sb = new StringBuilder();
+                lock (Emotes)
                 {
-                    for (int i = 0; i < line.emotes.Count; i++)
+                    Emotes = new List<Emote>();
+                    var currentHeight = 0.0;
+                    foreach (var line in queue)
                     {
-                        var e = line.emotes[i];
-                        var y = MeasureString(sb.ToString()).Height;
-                        e.Y = Convert.ToInt32(y);
-                        Emotes.Add(e);
+                        foreach (var e in line.Emotes)
+                        {
+                            e.Y = Convert.ToInt32(currentHeight);
+                            Emotes.Add(e);
+                        }
+                        sb.AppendLine(line.Text);
+                        currentHeight = GetHeight(sb.ToString());
                     }
-                    sb.AppendLine(line.text);
-                    lineNum++;
+                    return sb.ToString();
                 }
-                return sb.ToString();
             }
         }
 
-
-        private string DebugPositions(string s, List<Emote> emotes)
+        private void ResizeQueue()
         {
-            var sb = new StringBuilder();
-            var pos = 0;
-            var emote = 0;
-            while (pos < s.Length)
+            // Resize the queue to fit the maximum height
+            StringBuilder sb = new StringBuilder();
+            foreach (var line in queue.ToList())
             {
-                if (emote < emotes.Count)
+                sb.AppendLine(line.Text);
+                var str = sb.ToString();
+                var height = GetHeight(str);
+                while (height > maxHeight)
                 {
-                    var e = emotes[emote];
-                    if (pos == e.start)
-                    {
-                        sb.Append("@");
-                        emote++;
-                    }
+                    var firstLine = queue.Dequeue();
+                    sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
+                    str = sb.ToString();
+                    height = GetHeight(str);
                 }
-                sb.Append(s[pos]);
-                pos++;
             }
-            return sb.ToString();
         }
 
         private List<Emote> GetEmotes(int prefixLen, string tags)
@@ -144,145 +144,120 @@ namespace PluginTwitch
                     var i = index.Split('-');
                     var start = prefixLen + int.Parse(i[0]);
                     var end = prefixLen + int.Parse(i[1]);
-                    newEmotes.Add(new Emote(id, start, end));
+                    newEmotes.Add(new Emote(spaceReplacement, id, start, end));
                 }
             }
             newEmotes.Sort((e1, e2) => e1.start - e2.start);
             return newEmotes;
         }
 
-        private SizeF MeasureString(string s)
+        private List<Word> GetWords(string str, List<Emote> emotes)
         {
-            return graphics.MeasureString(s, font, 10000, format);
-        }
-
-        private string ReplaceEmotes(string s, IList<Emote> emotes)
-        {
-            var sb = new StringBuilder(s);
-            var removedChars = 0;
-            for (int i = 0; i < emotes.Count; i++)
-            {
-                var e = emotes[i];
-                var start = e.start - removedChars;
-                var end = e.end - removedChars;
-                var len = end - start + 1;
-                sb.Remove(start, len);
-                sb.Insert(start, placeHolder);
-                var removedNow = len - placeHolder.Length;
-                removedChars += removedNow;
-                e.start = start;
-            }
-            return sb.ToString();
-        }
-
-        private string WordWrap(string str, IList<Emote> emotes)
-        {
-            StringBuilder sb = new StringBuilder();
-            int pos = 0;
-            var eol = str.Length;
-
-            var newLine = "\r\n";
-            var emotePos = 0;
-            // Copy this line of text, breaking into smaller lines as needed
-            do
-            {
-                int len = eol - pos;
-
-                if (len > width)
-                    len = BreakLine(str, pos, width);
-
-                sb.Append(str, pos, len);
-                sb.Append(newLine);
-
-                pos += len;
-                var lineBreak = pos;
-
-                // Trim whitespace following break
-                var whiteSpaces = 0;
-                while (pos < eol && Char.IsWhiteSpace(str[pos]))
-                {
-                    pos++;
-                    whiteSpaces++;
-                }
-
-                // Update the starting indexes of the emotes
-                // Advance index to next emote after the line break
-                while (emotePos < emotes.Count && emotes[emotePos].start <= lineBreak)
-                    emotePos++;
-
-                // Add the length of the added new line minus the removed whitespaces to the
-                // emotes following the line break
-                for (int i = emotePos; i < emotes.Count; i++)
-                    emotes[i].start += (newLine.Length - whiteSpaces);
-
-            } while (eol > pos);
-            return sb.ToString();
-        }
-
-
-        private IList<Line> MakeLines(string wrapped, IList<Emote> emotes)
-        {
-            int pos = 0;
-            var eol = wrapped.Length;
-
+            List<Word> words = new List<Word>();
             var emoteIndex = 0;
-            var startOfLine = 0;
-            var numLines = 0;
-            var currentEmotes = new List<Emote>();
-            var lines = new List<Line>();
-            while (pos < eol)
+            var lastWord = 0;
+            for (int pos = 0; pos < str.Length; pos++)
             {
-                if (wrapped[pos] == '\r' && wrapped[pos + 1] == '\n')
+                if (emoteIndex < emotes.Count)
                 {
-                    var lineText = wrapped.Substring(startOfLine, pos - startOfLine);
-                    var line = new Line(lineText, currentEmotes);
-
-                    lines.Add(line);
-                    startOfLine = pos + 2;
-                    numLines++;
-                    currentEmotes = new List<Emote>();
-                    pos++;
-                }
-                else if (emoteIndex < emotes.Count)
-                {
-                    var e = emotes[emoteIndex];
-                    if (e.start == pos)
+                    var nextEmote = emotes[emoteIndex];
+                    if (pos == nextEmote.start)
                     {
-                        var upToEmote = wrapped.Substring(startOfLine, pos - startOfLine);
-                        var size = MeasureString(upToEmote);
-                        e.X = Convert.ToInt32(size.Width + (EmoteSize / 2.0));
-                        currentEmotes.Add(e);
+                        words.Add(nextEmote);
+                        pos = nextEmote.end + 1;
+                        lastWord = pos + 1;
                         emoteIndex++;
+                        continue;
                     }
                 }
-                pos++;
+
+                if (Char.IsWhiteSpace(str[pos]))
+                {
+                    words.Add(new Word(str.Substring(lastWord, pos - lastWord)));
+                    lastWord = pos + 1;
+                }
+            }
+            if (lastWord < str.Length)
+                words.Add(new Word(str.Substring(lastWord, str.Length - lastWord)));
+            return words;
+        }
+
+        private List<Line> WordWrap(List<Word> words)
+        {
+            var lines = new List<Line>();
+            var currentLength = 0.0;
+            string lastWord = "";
+            var currentLine = new Line();
+            while (true)
+            {
+                var currentWord = words[0];
+                if(currentWord is Emote)
+                {
+                    var e = currentWord as Emote;
+                    e.X = Convert.ToInt32(currentLength + EmoteSize / 2.0);
+                }
+                
+                string newString = (currentLine.Text + ' ').TrimStart(' ') + currentWord.String;
+                var len = GetWidth(newString);
+                if(len > maxWidth)
+                {
+                    if(currentLine.Text == string.Empty)
+                    {
+                        // Word is longer than a line, find break point.
+                        int breakPoint = FindBreakpoint(newString);
+                        currentLine.Add(new Word(newString.Substring(0, breakPoint)));
+                        words[0] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
+                    }
+                    // Word no longer fits in line.
+                    lines.Add(currentLine);
+                    currentLine = new Line();
+                    currentLength = 0.0;
+                }
+                else
+                {
+                    words.RemoveAt(0);
+                    currentLine.Add(currentWord);
+                    currentLength = len;
+                }
+
+                if (words.Count == 0)
+                {
+                    lines.Add(currentLine);
+                    break;
+                }
             }
             return lines;
         }
 
-        /// <summary>
-        /// Locates position to break the given line so as to avoid
-        /// breaking words.
-        /// </summary>
-        /// <param name="text">String that contains line of text</param>
-        /// <param name="pos">Index where line of text starts</param>
-        /// <param name="max">Maximum line length</param>
-        /// <returns>The modified line length</returns>
-        private int BreakLine(string text, int pos, int max)
+        private int FindBreakpoint(string str)
         {
-            // Find last whitespace in line
-            int i = max - 1;
-            while (i >= 0 && !Char.IsWhiteSpace(text[pos + i]))
-                i--;
-            if (i < 0)
-                return max; // No whitespace found; break at maximum length
-                            // Find start of whitespace
-            while (i >= 0 && Char.IsWhiteSpace(text[pos + i]))
-                i--;
-            // Return length of text before whitespace
-            return i + 1;
+            // This is very slow but maybe it doesnt matter since words longer than 
+            // the width should be fairly uncommon.
+            // One could use binary search to find the breakpoint faster
+            int breakPoint;
+            for (breakPoint = 1; breakPoint < str.Length; breakPoint++)
+            {
+                var wordLen = GetWidth(str.Substring(0, breakPoint));
+                if (wordLen >= maxWidth)
+                    return breakPoint - 1;
+            }
+            return -1;
         }
 
+        private double GetWidth(string s)
+        {
+            return MeasureString(s).Width;
+        }
+
+        private double GetHeight(string s)
+        {
+            return MeasureString(s).Height;
+        }
+
+        private SizeF MeasureString(string s)
+        {
+            return graphics.MeasureString(s, font, 10000, format);
+        }
 
         private void DownloadEmote(int id)
         {
@@ -294,7 +269,7 @@ namespace PluginTwitch
                 beingDownloaded.Add(id);
             }
 
-            var file = string.Format("C:\\Emotes\\{0}.png", id);
+            var file = string.Format("{0}\\{1}.png", emoteDir, id);
             if (!File.Exists(file))
             {
                 var url = string.Format("http://static-cdn.jtvnw.net/emoticons/v1/{0}/1.0", id);
@@ -321,6 +296,5 @@ namespace PluginTwitch
             }
             return dict;
         }
-
     }
 }

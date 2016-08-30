@@ -28,9 +28,9 @@ namespace PluginTwitch
 
         public TwitchClient(string username, string ouath, MessageParser messageParser)
         {
-            Channel = "";
             isConnected = false;
             client = new TwitchIrcClient();
+            Channel = "";
             this.username = username;
             this.ouath = ouath;
             this.messageParser = messageParser;
@@ -40,7 +40,7 @@ namespace PluginTwitch
         {
             if (isConnected)
                 return;
-            Debug.WriteLine("Connect");
+
             String = string.Format("Starting to connect to twitch as {0}.", username);
             var server = "irc.twitch.tv";
             client.FloodPreventer = new IrcStandardFloodPreventer(4, 2000);
@@ -86,24 +86,23 @@ namespace PluginTwitch
             if (!isConnected)
                 return;
 
-            Debug.WriteLine("JoinChannel");
             messageParser.Reset();
-            if(Channel != "")
-                client.Channels.Leave(Channel);
+            String = "";
             Channel = channel;
+            foreach (var c in client.Channels)
+                client.Channels.Leave(c.Name);
             client.Channels.Join(Channel);
         }
 
         public void LeaveChannel()
         {
-            if (!isConnected || Channel == "")
+            if (!isConnected)
                 return;
-
-            Debug.WriteLine("LeaveChannel");
 
             messageParser.Reset();
             String = "";
-            client.Channels.Leave(Channel);
+            foreach(var c in client.Channels)
+                client.Channels.Leave(c.Name);
             Channel = "";
         }
 
@@ -127,9 +126,7 @@ namespace PluginTwitch
 
         public void SendMessage(string msg)
         {
-            var m = string.Format(":{0}!{0}@{0}.tmi.twitch.tv PRIVMSG {1} :{2}", username, Channel, msg);
-            client.SendRawMessage(m);
-            messageParser.AddMessage(username, msg, null);
+            client.SendPrivateMessage(new String[] { Channel }, msg);
         }
 
         private void IrcClient_Registered(object sender, EventArgs e)
@@ -150,9 +147,10 @@ namespace PluginTwitch
         private void IrcClient_Channel_MessageReceived(object sender, IrcMessageEventArgs e)
         {
             var channel = (IrcChannel)sender;
-
-            if (e.Source is IrcUser)
-                String = messageParser.AddMessage(e.Source.Name, e.Text, e.Tags);
+            lock (String)
+            {
+               String = messageParser.AddMessage(e.Source.Name, e.Text, e.Tags);
+            }
         }
 
     }

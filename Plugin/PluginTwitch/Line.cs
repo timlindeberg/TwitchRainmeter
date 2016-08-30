@@ -6,23 +6,30 @@ using System.Threading.Tasks;
 
 namespace PluginTwitch
 {
-    public struct Line
+    class Line
     {
-        public string text;
-        public IList<Emote> emotes;
+        public List<Emote> Emotes;
+        public string Text { get ; private set; }
 
-        public Line(string text, IList<Emote> emotes)
+        public Line()
         {
-            this.text = text;
-            this.emotes = emotes;
+            Text = string.Empty;
+            Emotes = new List<Emote>();
+        }
+
+        public void Add(Word w)
+        {
+            if (Text == string.Empty)
+                Text = w.String;
+            else
+                Text += " " + w.String;
+            if(w is Emote)
+                Emotes.Add(w as Emote);
         }
 
         public override string ToString()
         {
-            var sb = new StringBuilder(text);
-            foreach (var e in emotes)
-                sb.AppendLine("\t" + e);
-            return sb.ToString();
+            return Text;
         }
     }
 }

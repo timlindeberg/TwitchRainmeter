@@ -84,6 +84,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="Line.cs" />
+    <Compile Include="Word.cs" />
     <Compile Include="Emote.cs" />
     <Compile Include="FixedSizeQueue.cs" />
     <Compile Include="IrcDotNet\CircularBufferStream.cs" />
@@ -129,7 +131,6 @@
     <Compile Include="IrcDotNet\StandardIrcClient.cs" />
     <Compile Include="IrcDotNet\TextUtilities.cs" />
     <Compile Include="IrcDotNet\TwitchIrcClient.cs" />
-    <Compile Include="Line.cs" />
     <Compile Include="MessageParser.cs" />
     <Compile Include="RainmeterAPI.cs" />
     <Compile Include="TwitchClient.cs" />

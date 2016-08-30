@@ -40,14 +40,15 @@ namespace PluginTwitch
                 string user = api.ReadString("Username", "");
                 string ouath = api.ReadString("Ouath", "");
                 string fontFace = api.ReadString("FontFace", "");
-                int lines = api.ReadInt("Lines", 20);
-                int width = api.ReadInt("Width", 120);
-                int fontSize = api.ReadInt("FontSize", 16);
-                if (user == "" || ouath == "" || fontFace == "")
+                string emoteDir = api.ReadString("EmoteDir", "");
+                int width = api.ReadInt("Width", 500);
+                int height = api.ReadInt("Height", 500);
+                int fontSize = api.ReadInt("FontSize", 0);
+                if (user == "" || ouath == "" || fontFace == "" || emoteDir == "" || fontSize == 0)
                     return;
 
                 var font = new Font(fontFace, fontSize);
-                var messageParser = new MessageParser(lines, width, font);
+                var messageParser = new MessageParser(width, height, emoteDir, font);
                 twitch = new TwitchClient(user, ouath, messageParser);
             }
 
