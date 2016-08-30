@@ -12,9 +12,11 @@ namespace PluginTwitch
 {
     public class MessageParser
     {
-        public int EmoteSize { get; private set; }
+        public int EmoteWidth { get; private set; }
+        public int EmoteHeight { get; private set; }
         public List<Emote> Emotes { get; private set; }
 
+        private const string EmoteString = "    ";
         private Queue<Line> queue;
         private HashSet<int> beingDownloaded;
         private Font font;
@@ -22,7 +24,6 @@ namespace PluginTwitch
         private int maxWidth;
         private int maxHeight;
         private int numSpaces;
-        private string spaceReplacement;
         private Graphics graphics;
         private StringFormat format;
         private string emoteDir;
@@ -44,18 +45,9 @@ namespace PluginTwitch
             graphics = Graphics.FromImage(bitmap);
             format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
 
-            var spaceSize = MeasureString(" ").Width;
-            var size = 30.0; // An emote is generally around 25 pixels
-            var emoteSize = 0.0;
-            while(emoteSize < size)
-                emoteSize += spaceSize;
-
-            emoteSize -= spaceSize;
-            int numSpaces = Convert.ToInt32(emoteSize / spaceSize);
-            for (int i = 0; i < numSpaces; i++)
-                spaceReplacement += " ";
-
-            EmoteSize = Convert.ToInt32(emoteSize);
+            var size = MeasureString(EmoteString);
+            EmoteWidth = Convert.ToInt32(size.Width);
+            EmoteHeight = Convert.ToInt32(size.Height);
         }
 
         public void Reset()
@@ -63,7 +55,7 @@ namespace PluginTwitch
             Emotes = new List<Emote>();
             queue = new Queue<Line>();
         }
-        
+
         public String AddMessage(string user, string message, string tags)
         {
             var prefix = string.Format("{0}: ", user);
@@ -74,7 +66,7 @@ namespace PluginTwitch
             var words = GetWords(fullString, emotes);
             var lines = WordWrap(words);
 
-            return BuildNewString(lines):
+            return BuildNewString(lines);
         }
 
         private string BuildNewString(List<Line> lines)
@@ -144,7 +136,7 @@ namespace PluginTwitch
                     var i = index.Split('-');
                     var start = prefixLen + int.Parse(i[0]);
                     var end = prefixLen + int.Parse(i[1]);
-                    newEmotes.Add(new Emote(spaceReplacement, id, start, end));
+                    newEmotes.Add(new Emote(EmoteString, id, start, end));
                 }
             }
             newEmotes.Sort((e1, e2) => e1.start - e2.start);
@@ -194,7 +186,7 @@ namespace PluginTwitch
                 if(currentWord is Emote)
                 {
                     var e = currentWord as Emote;
-                    e.X = Convert.ToInt32(currentLength + EmoteSize / 2.0);
+                    e.X = Convert.ToInt32(currentLength + EmoteWidth / 2);
                 }
                 
                 string newString = (currentLine.Text + ' ').TrimStart(' ') + currentWord.String;
@@ -235,7 +227,7 @@ namespace PluginTwitch
             // the width should be fairly uncommon.
             // One could use binary search to find the breakpoint faster
             int breakPoint;
-            for (breakPoint = 1; breakPoint < str.Length; breakPoint++)
+            for (breakPoint = 1; breakPoint <= str.Length; breakPoint++)
             {
                 var wordLen = GetWidth(str.Substring(0, breakPoint));
                 if (wordLen >= maxWidth)

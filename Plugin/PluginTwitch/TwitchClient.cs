@@ -17,7 +17,8 @@ namespace PluginTwitch
 
         public String String { get; private set;  }
         public String Channel { get; private set; }
-        public int EmoteSize { get { return messageParser.EmoteSize; } }
+        public int EmoteWidth { get { return messageParser.EmoteWidth; } }
+        public int EmoteHeight { get { return messageParser.EmoteHeight; } }
 
         private TwitchIrcClient client;
         private MessageParser messageParser;

@@ -37,7 +37,7 @@ namespace PluginTwitch
 
             if (twitch == null)
             {
-                string user = api.ReadString("Username", "");
+                string user = api.ReadString("Username", "").ToLower();
                 string ouath = api.ReadString("Ouath", "");
                 string fontFace = api.ReadString("FontFace", "");
                 string emoteDir = api.ReadString("EmoteDir", "");
@@ -83,15 +83,25 @@ namespace PluginTwitch
             if (tpe == "InChannel")
                  return twitch.IsInChannel() ? 1.0 : 0.0;
 
-            if (tpe.StartsWith("TwitchEmoteSize"))
-                return twitch.EmoteSize;
+            if (tpe.StartsWith("TwitchEmoteWidth"))
+                return twitch.EmoteWidth;
+
+            if (tpe.StartsWith("TwitchEmoteHeight"))
+                return twitch.EmoteHeight;
 
             if (tpe.StartsWith("TwitchEmote"))
             {
                 var pattern = @"TwitchEmote([^\d]*)(\d*)";
-                var m = Regex.Matches(tpe, pattern)[0].Groups;
-                var variable = m[1].Value;
-                var index = int.Parse(m[2].Value);
+                var matches = Regex.Matches(tpe, pattern);
+                if (matches.Count == 0)
+                    return 0.0;
+
+                var matchGroups = matches[0].Groups;
+                if (matchGroups.Count < 3)
+                    return 0.0;
+
+                var variable = matchGroups[1].Value;
+                var index = int.Parse(matchGroups[2].Value);
                 var emote = twitch.GetEmote(index);
                 if (emote == null)
                     return 0.0;

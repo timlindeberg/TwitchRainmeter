@@ -24,8 +24,6 @@ namespace PluginTwitch
             this.end = end;
         }
 
-        public string GetWord() { return "    ";  }
-
         public override string ToString()
         {
             return string.Format("Emote({0})", ID);
