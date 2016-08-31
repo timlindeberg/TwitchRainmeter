@@ -85,11 +85,15 @@
       <HintPath>..\packages\System.Json.4.0.20126.16343\lib\net40\System.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="ChromeURLLocator.cs" />
     <Compile Include="ImageDownloader.cs" />
     <Compile Include="Line.cs" />
+    <Compile Include="WebBrowserUrlLocator.cs" />
     <Compile Include="Word.cs" />
     <Compile Include="Image.cs" />
     <Compile Include="IrcDotNet\CircularBufferStream.cs" />

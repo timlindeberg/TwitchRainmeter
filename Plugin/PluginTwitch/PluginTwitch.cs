@@ -7,6 +7,8 @@ using System.Runtime.InteropServices;
 using Rainmeter;
 using System.Text.RegularExpressions;
 using System.Drawing;
+using System.Diagnostics;
+using System.Windows.Automation;
 
 // Overview: This is a blank canvas on which to build your plugin.
 
@@ -22,19 +24,49 @@ namespace PluginTwitch
     internal class Measure
     {
         static TwitchClient twitch = null;
-        static TwitchClient twitchSender = null;
-        string tpe = "";
+        static WebBrowserURLLocator urlLocator = null;
 
-        internal Measure()
-        {
-        }
+        string tpe = "";
 
         internal void Reload(API api, ref double maxValue)
         {
             tpe = api.ReadString("Type", "");
-            if (tpe != "Main")
+
+            switch (tpe)
+            {
+                case "AutoConnector": ReloadAutoConnector(api); return;
+                case "Main": ReloadMain(api); return;
+            }
+        }
+
+        internal void ReloadAutoConnector(API api)
+        {
+            if (api.ReadDouble("ConnectAutomatically", 0.0) != 1.0)
                 return;
 
+            if (urlLocator == null)
+            {
+                string webBrowser = api.ReadString("Browser", "").ToLower();
+                switch (webBrowser)
+                {
+                    case "chrome":
+                        urlLocator = new ChromeURLLocator();
+                        break;
+                    case "firefox":
+                        // todo
+                        return;
+                    case "ie":
+                        return;
+                    default: return;
+                }
+            }
+            var channel = urlLocator.TwitchChannel;
+            if (channel != null)
+                twitch.JoinChannel(channel);
+        }
+
+        internal void ReloadMain(API api)
+        {
             if (twitch == null)
             {
                 string user = api.ReadString("Username", "").ToLower();
@@ -44,7 +76,7 @@ namespace PluginTwitch
                 int width = api.ReadInt("Width", 500);
                 int height = api.ReadInt("Height", 500);
                 int fontSize = api.ReadInt("FontSize", 0);
-                
+
                 if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                     return;
 
@@ -115,6 +147,9 @@ namespace PluginTwitch
         {
             if (tpe == "Main")
                 return twitch?.String ?? "";
+
+            if (tpe == "ChannelName")
+                return twitch.Channel;
 
             var imgInfo = ImageInfo();
             if (imgInfo == null)
