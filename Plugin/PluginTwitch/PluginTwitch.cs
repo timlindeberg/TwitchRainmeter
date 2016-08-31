@@ -22,7 +22,7 @@ namespace PluginTwitch
     internal class Measure
     {
         static TwitchClient twitch = null;
-
+        static TwitchClient twitchSender = null;
         string tpe = "";
 
         internal Measure()
@@ -55,20 +55,20 @@ namespace PluginTwitch
             }
 
             string newChannel = api.ReadString("Channel", "").ToLower();
-            if (newChannel == "" || newChannel[0] != '#')
-                return;
 
-            if (newChannel == "#")
+            if (newChannel == string.Empty)
             {
                 twitch.LeaveChannel();
                 return;
             }
 
-            if(newChannel != twitch.Channel)
-            {
-                twitch.Connect();
-                twitch.JoinChannel(newChannel);
-            }
+            if (newChannel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
+                return;
+
+            if (!newChannel.StartsWith("#"))
+                newChannel = "#" + newChannel;
+
+            twitch.JoinChannel(newChannel);
         }
 
         internal void Cleanup()
@@ -83,7 +83,7 @@ namespace PluginTwitch
                 return 0.0;
 
             if (tpe == "InChannel")
-                 return twitch.IsInChannel() ? 1.0 : 0.0;
+                 return twitch.IsInChannel ? 1.0 : 0.0;
 
             if (tpe == "TwitchImageWidth")
                 return twitch.ImageWidth;
@@ -139,6 +139,8 @@ namespace PluginTwitch
         }
 #endif
 
+        // We need to replicate this logic in both GetString and update
+        // since TwitchImageName is a string and TwitchImageX/Y is a double.
         internal Tuple<string, Image> ImageInfo()
         {
             if (tpe == "TwitchImageWidth")

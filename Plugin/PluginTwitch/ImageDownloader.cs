@@ -52,10 +52,19 @@ namespace PluginTwitch
             }
 
             string channelBadgesUrl = string.Format(ChannelBadgesUrl, channel.Replace("#", ""));
-            string json = webClient.DownloadString(channelBadgesUrl);
-
-            var subscriberBadgeUrl = GetSubscriberBadgeUrl(json);
-            DownloadImage(subscriberBadgeUrl, "subscriber", replaceExistingFile:true);
+            try
+            {
+                string json = webClient.DownloadString(channelBadgesUrl);
+                var subscriberBadgeUrl = GetSubscriberBadgeUrl(json);
+                if (subscriberBadgeUrl == string.Empty)
+                    return;
+                DownloadImage(subscriberBadgeUrl, "subscriber", replaceExistingFile: true);
+            }
+            catch (WebException e)
+            {
+                // Channel doesn't exist, do nothing
+            }
+            
         }
 
         public void DownloadEmote(string id)

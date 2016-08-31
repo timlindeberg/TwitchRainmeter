@@ -73,10 +73,13 @@ namespace PluginTwitch
 
         public String AddMessage(string user, string message, string tags)
         {
-            var words = GetWords(user, message, tags);
-            var lines = WordWrap(words);
+            lock (Images)
+            {
+                var words = GetWords(user, message, tags);
+                var lines = WordWrap(words);
 
-            return BuildNewString(lines);
+                return BuildNewString(lines);
+            }
         }
 
         private string BuildNewString(List<Line> lines)
@@ -88,22 +91,19 @@ namespace PluginTwitch
 
                 // Calculate image positions and build final string
                 var sb = new StringBuilder();
-                lock (Images)
+                Images = new List<Image>();
+                var currentHeight = 0.0;
+                foreach (var line in queue)
                 {
-                    Images = new List<Image>();
-                    var currentHeight = 0.0;
-                    foreach (var line in queue)
+                    foreach (var img in line.Images)
                     {
-                        foreach (var img in line.Images)
-                        {
-                            img.Y = Convert.ToInt32(currentHeight);
-                            Images.Add(img);
-                        }
-                        sb.AppendLine(line.Text);
-                        currentHeight = GetHeight(sb.ToString());
+                        img.Y = Convert.ToInt32(currentHeight);
+                        Images.Add(img);
                     }
-                    return sb.ToString();
+                    sb.AppendLine(line.Text);
+                    currentHeight = GetHeight(sb.ToString());
                 }
+                return sb.ToString();
             }
         }
 

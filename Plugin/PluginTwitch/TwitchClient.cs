@@ -19,8 +19,10 @@ namespace PluginTwitch
         public String Channel { get; private set; }
         public int ImageWidth { get { return messageParser.ImageWidth; } }
         public int ImageHeight { get { return messageParser.ImageHeight; } }
+        public bool IsInChannel { get { return Channel != ""; } }
 
         private TwitchIrcClient client;
+        private TwitchIrcClient senderClient;
         private MessageParser messageParser;
         private ImageDownloader imgDownloader;
         private String username;
@@ -31,6 +33,7 @@ namespace PluginTwitch
         {
             isConnected = false;
             client = new TwitchIrcClient();
+            senderClient = new TwitchIrcClient();
             Channel = "";
             this.username = username;
             this.ouath = ouath;
@@ -49,19 +52,19 @@ namespace PluginTwitch
             client.Registered += IrcClient_Registered;
             // Wait until connection has succeeded or timed out.
             var waitTime = 2000;
+            var ircRegistrationInfo = new IrcUserRegistrationInfo()
+            {
+                NickName = username,
+                Password = ouath,
+                UserName = username
+            };
             using (var registeredEvent = new ManualResetEventSlim(false))
             {
                 using (var connectedEvent = new ManualResetEventSlim(false))
                 {
                     client.Connected += (sender2, e2) => connectedEvent.Set();
                     client.Registered += (sender2, e2) => registeredEvent.Set();
-                    client.Connect(server, false,
-                        new IrcUserRegistrationInfo()
-                        {
-                            NickName = username,
-                            Password = ouath,
-                            UserName = username
-                        });
+                    client.Connect(server, false, ircRegistrationInfo);
                     if (!connectedEvent.Wait(waitTime))
                     {
                         String = string.Format("Connection to Twitch timed out.", server);
@@ -75,38 +78,30 @@ namespace PluginTwitch
                 }
                 isConnected = true;
                 client.SendRawMessage("CAP REQ :twitch.tv/tags");
+                senderClient.Connect(server, false, ircRegistrationInfo);
             }
         }
 
-        public bool IsInChannel()
+        public void JoinChannel(string newChannel)
         {
-            return Channel != "";
-        }
-
-        public void JoinChannel(string channel)
-        {
-            if (!isConnected)
+            if (newChannel == Channel)
                 return;
 
-            messageParser.Reset();
-            String = "";
-            Channel = channel;
-            foreach (var c in client.Channels)
-                client.Channels.Leave(c.Name);
-            client.Channels.Join(Channel);
-            imgDownloader.DownloadBadges(channel);
+            Connect();
+            LeaveChannel();
+            client.Channels.Join(newChannel);
+            imgDownloader.DownloadBadges(newChannel);
         }
 
         public void LeaveChannel()
         {
-            if (!isConnected)
+            if (!isConnected || !IsInChannel)
                 return;
 
+            client.Channels.Leave(Channel);
             messageParser.Reset();
-            String = "";
-            foreach(var c in client.Channels)
-                client.Channels.Leave(c.Name);
             Channel = "";
+            String = "";
         }
 
         public void Disconnect()
@@ -115,27 +110,32 @@ namespace PluginTwitch
                 return;
 
             client.Disconnect();
+            senderClient.Disconnect();
             isConnected = false;
         }
 
         public Image GetImage(int index)
         {
-            var emotes = messageParser.Images;
-            if (index >= emotes.Count)
+            var images = messageParser.Images;
+            if (index < 0 || index >= images.Count)
                 return null;
 
-            return emotes[index];
+            return images[index];
         }
 
         public void SendMessage(string msg)
         {
-            client.SendPrivateMessage(new String[] { Channel }, msg);
+            // We use another client with another connection to send the message.
+            // This way the other client recieves a message with emote positions etc.
+            // when the message is sent.
+            senderClient.SendPrivateMessage(new String[] { Channel }, msg);
         }
 
         private void IrcClient_Registered(object sender, EventArgs e)
         {
             var client = (IrcClient)sender;
 
+            client.LocalUser.JoinedChannel -= IrcClient_LocalUser_JoinedChannel;
             client.LocalUser.JoinedChannel += IrcClient_LocalUser_JoinedChannel;
         }
 
@@ -143,8 +143,10 @@ namespace PluginTwitch
         {
             var localUser = (IrcLocalUser)sender;
 
+            e.Channel.MessageReceived -= IrcClient_Channel_MessageReceived;
             e.Channel.MessageReceived += IrcClient_Channel_MessageReceived;
             String = string.Format("Joined the channel {0}.", e.Channel.Name);
+            Channel = e.Channel.Name;
         }
 
         private void IrcClient_Channel_MessageReceived(object sender, IrcMessageEventArgs e)
