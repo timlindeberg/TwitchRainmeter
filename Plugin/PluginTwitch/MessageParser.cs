@@ -5,65 +5,75 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.Diagnostics;
-using System.IO;
-using System.Net;
 
 namespace PluginTwitch
 {
     public class MessageParser
     {
-        public int EmoteWidth { get; private set; }
-        public int EmoteHeight { get; private set; }
-        public List<Emote> Emotes { get; private set; }
+        public int ImageWidth { get; private set; }
+        public int ImageHeight { get; private set; }
+        public List<Image> Images { get; private set; }
 
-        private const string EmoteString = "    ";
         private Queue<Line> queue;
-        private HashSet<int> beingDownloaded;
         private Font font;
-        private WebClient webClient;
         private int maxWidth;
         private int maxHeight;
         private int numSpaces;
         private Graphics graphics;
         private StringFormat format;
-        private string emoteDir;
+        private ImageDownloader imgDownloader;
 
 
-        public MessageParser(int width, int height, string emoteDir, Font font)
+        public MessageParser(int width, int height, Font font, ImageDownloader imgDownloader)
         {
             queue = new Queue<Line>();
-            beingDownloaded = new HashSet<int>();
-            Emotes = new List<Emote>();
-            webClient = new WebClient();
+            Images = new List<Image>();
+            this.imgDownloader = imgDownloader;
 
             this.maxWidth = width;
             this.maxHeight = height;
             this.font = font;
-            this.emoteDir = emoteDir;
 
             var bitmap = new Bitmap(1, 1);
             graphics = Graphics.FromImage(bitmap);
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
             format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
 
-            var size = MeasureString(EmoteString);
-            EmoteWidth = Convert.ToInt32(size.Width);
-            EmoteHeight = Convert.ToInt32(size.Height);
+            Image.ImageString = CalculateImageString();
+            var size = MeasureString(Image.ImageString);
+            ImageWidth = Convert.ToInt32(size.Width);
+            ImageHeight = Convert.ToInt32(size.Height);
+        }
+
+        public string CalculateImageString()
+        {
+            // Calculates the number of spaces that has the most similiar width and height.
+            var s = " ";
+            var size = MeasureString(s);
+            double height = size.Height;
+            double width = size.Width;
+            double previousWidth = height;
+            while(width < height)
+            {
+                s += " ";
+                previousWidth = width;
+                width = GetWidth(s);
+            }
+            if (Math.Abs(previousWidth - height) <= Math.Abs(width - height))
+                return s.Substring(1);
+            else
+                return s;
         }
 
         public void Reset()
         {
-            Emotes = new List<Emote>();
+            Images = new List<Image>();
             queue = new Queue<Line>();
         }
 
         public String AddMessage(string user, string message, string tags)
         {
-            var prefix = string.Format("{0}: ", user);
-            var emotes = GetEmotes(prefix.Length, tags);
-
-            string fullString = prefix + message;
-
-            var words = GetWords(fullString, emotes);
+            var words = GetWords(user, message, tags);
             var lines = WordWrap(words);
 
             return BuildNewString(lines);
@@ -78,16 +88,16 @@ namespace PluginTwitch
 
                 // Calculate image positions and build final string
                 var sb = new StringBuilder();
-                lock (Emotes)
+                lock (Images)
                 {
-                    Emotes = new List<Emote>();
+                    Images = new List<Image>();
                     var currentHeight = 0.0;
                     foreach (var line in queue)
                     {
-                        foreach (var e in line.Emotes)
+                        foreach (var img in line.Images)
                         {
-                            e.Y = Convert.ToInt32(currentHeight);
-                            Emotes.Add(e);
+                            img.Y = Convert.ToInt32(currentHeight);
+                            Images.Add(img);
                         }
                         sb.AppendLine(line.Text);
                         currentHeight = GetHeight(sb.ToString());
@@ -116,39 +126,22 @@ namespace PluginTwitch
             }
         }
 
-        private List<Emote> GetEmotes(int prefixLen, string tags)
+        private List<Word> GetWords(string user, string msg, string tags)
         {
             var tagMap = GetTagMap(tags);
-            var newEmotes = new List<Emote>();
 
-            if (!tagMap.ContainsKey("emotes"))
-                return newEmotes;
+            var badges = GetBadges(tagMap);
+            var emotes = GetEmotes(tagMap);
 
-            foreach (var emote in tagMap["emotes"].Split('/'))
-            {
-                var s = emote.Split(':');
-                var id = int.Parse(s[0]);
+            var prefix = new Word(string.Format("<{0}>:", user));
 
-                DownloadEmote(id);
-
-                foreach (var index in s[1].Split(','))
-                {
-                    var i = index.Split('-');
-                    var start = prefixLen + int.Parse(i[0]);
-                    var end = prefixLen + int.Parse(i[1]);
-                    newEmotes.Add(new Emote(EmoteString, id, start, end));
-                }
-            }
-            newEmotes.Sort((e1, e2) => e1.start - e2.start);
-            return newEmotes;
-        }
-
-        private List<Word> GetWords(string str, List<Emote> emotes)
-        {
             List<Word> words = new List<Word>();
+            words.AddRange(badges);
+            words.Add(prefix);
+
             var emoteIndex = 0;
             var lastWord = 0;
-            for (int pos = 0; pos < str.Length; pos++)
+            for (int pos = 0; pos < msg.Length; pos++)
             {
                 if (emoteIndex < emotes.Count)
                 {
@@ -163,33 +156,79 @@ namespace PluginTwitch
                     }
                 }
 
-                if (Char.IsWhiteSpace(str[pos]))
+                if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    words.Add(new Word(str.Substring(lastWord, pos - lastWord)));
+                    words.Add(new Word(msg.Substring(lastWord, pos - lastWord)));
                     lastWord = pos + 1;
                 }
             }
-            if (lastWord < str.Length)
-                words.Add(new Word(str.Substring(lastWord, str.Length - lastWord)));
+            if (lastWord < msg.Length)
+                words.Add(new Word(msg.Substring(lastWord, msg.Length - lastWord)));
             return words;
+        }
+
+        private List<Image> GetBadges(IDictionary<string, string> tagMap)
+        {
+            var badges = new List<Image>();
+
+            if (tagMap.ContainsKey("badges"))
+            {
+                foreach (var badge in tagMap["badges"].Split(','))
+                {
+                    // Ignore cheer badges for now since they're not officialy supported
+                    if (badge.StartsWith("bits"))
+                        continue;
+                    var fileName = badge.Replace("/1", "");
+                    badges.Add(new Image(fileName, 0, 0));
+                }
+            }
+            return badges;
+        }
+
+        private List<Image> GetEmotes(IDictionary<string, string> tagMap)
+        {
+            var emotes = new List<Image>();
+
+            if (!tagMap.ContainsKey("emotes"))
+                return emotes;
+
+            foreach (var emote in tagMap["emotes"].Split('/'))
+            {
+                var s = emote.Split(':');
+                var id = s[0];
+
+                imgDownloader.DownloadEmote(id);
+
+                foreach (var index in s[1].Split(','))
+                {
+                    var i = index.Split('-');
+                    var start = int.Parse(i[0]);
+                    var end = int.Parse(i[1]);
+                    emotes.Add(new Image(id, start, end));
+                }
+            }
+            emotes.Sort((e1, e2) => e1.start - e2.start);
+            return emotes;
         }
 
         private List<Line> WordWrap(List<Word> words)
         {
             var lines = new List<Line>();
             var currentLength = 0.0;
-            string lastWord = "";
             var currentLine = new Line();
             while (true)
             {
                 var currentWord = words[0];
-                if(currentWord is Emote)
+                if(currentWord is Image)
                 {
-                    var e = currentWord as Emote;
-                    e.X = Convert.ToInt32(currentLength + EmoteWidth / 2);
+                    var length = currentLength;
+                    if (currentLine.Text != string.Empty)
+                        length = GetWidth(currentLine.Text + " ");
+                    var img = currentWord as Image;
+                    img.X = Convert.ToInt32(currentLength);
                 }
                 
-                string newString = (currentLine.Text + ' ').TrimStart(' ') + currentWord.String;
+                string newString = (currentLine.Text + ' ') + currentWord.String;
                 var len = GetWidth(newString);
                 if(len > maxWidth)
                 {
@@ -249,29 +288,6 @@ namespace PluginTwitch
         private SizeF MeasureString(string s)
         {
             return graphics.MeasureString(s, font, 10000, format);
-        }
-
-        private void DownloadEmote(int id)
-        {
-            lock (beingDownloaded)
-            {
-                if (beingDownloaded.Contains(id))
-                    return;
-
-                beingDownloaded.Add(id);
-            }
-
-            var file = string.Format("{0}\\{1}.png", emoteDir, id);
-            if (!File.Exists(file))
-            {
-                var url = string.Format("http://static-cdn.jtvnw.net/emoticons/v1/{0}/1.0", id);
-                webClient.DownloadFile(url, file);
-            }
-
-            lock (beingDownloaded)
-            {
-                beingDownloaded.Remove(id);
-            }
         }
 
         private IDictionary<string, string> GetTagMap(string tags)

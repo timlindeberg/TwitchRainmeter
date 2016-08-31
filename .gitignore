@@ -15,7 +15,7 @@
 *.userprefs
 
 @Resources/generated/
-@Resources/emotes/
+@Resources/images/
 
 # Build results
 [Dd]ebug/

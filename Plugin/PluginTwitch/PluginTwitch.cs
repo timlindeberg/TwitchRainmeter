@@ -40,16 +40,18 @@ namespace PluginTwitch
                 string user = api.ReadString("Username", "").ToLower();
                 string ouath = api.ReadString("Ouath", "");
                 string fontFace = api.ReadString("FontFace", "");
-                string emoteDir = api.ReadString("EmoteDir", "");
+                string imageDir = api.ReadString("ImageDir", "");
                 int width = api.ReadInt("Width", 500);
                 int height = api.ReadInt("Height", 500);
                 int fontSize = api.ReadInt("FontSize", 0);
-                if (user == "" || ouath == "" || fontFace == "" || emoteDir == "" || fontSize == 0)
+                
+                if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                     return;
 
                 var font = new Font(fontFace, fontSize);
-                var messageParser = new MessageParser(width, height, emoteDir, font);
-                twitch = new TwitchClient(user, ouath, messageParser);
+                var imgDownloader = new ImageDownloader(imageDir);
+                var messageParser = new MessageParser(width, height, font, imgDownloader);
+                twitch = new TwitchClient(user, ouath, messageParser, imgDownloader);
             }
 
             string newChannel = api.ReadString("Channel", "").ToLower();
@@ -83,36 +85,26 @@ namespace PluginTwitch
             if (tpe == "InChannel")
                  return twitch.IsInChannel() ? 1.0 : 0.0;
 
-            if (tpe.StartsWith("TwitchEmoteWidth"))
-                return twitch.EmoteWidth;
+            if (tpe == "TwitchImageWidth")
+                return twitch.ImageWidth;
 
-            if (tpe.StartsWith("TwitchEmoteHeight"))
-                return twitch.EmoteHeight;
+            if (tpe == "TwitchImageHeight")
+                return twitch.ImageHeight;
 
-            if (tpe.StartsWith("TwitchEmote"))
+            var imgInfo = ImageInfo();
+            if (imgInfo == null)
+                return 0.0;
+
+            var variable = imgInfo.Item1;
+            var img = imgInfo.Item2;
+            if (img == null)
+                return 0.0;
+
+            switch (variable)
             {
-                var pattern = @"TwitchEmote([^\d]*)(\d*)";
-                var matches = Regex.Matches(tpe, pattern);
-                if (matches.Count == 0)
-                    return 0.0;
-
-                var matchGroups = matches[0].Groups;
-                if (matchGroups.Count < 3)
-                    return 0.0;
-
-                var variable = matchGroups[1].Value;
-                var index = int.Parse(matchGroups[2].Value);
-                var emote = twitch.GetEmote(index);
-                if (emote == null)
-                    return 0.0;
-
-                switch (variable)
-                {
-                    case "ID": return emote.ID;
-                    case "X": return emote.X;
-                    case "Y": return emote.Y;
-                    default: return 0.0;
-                }
+                case "X": return img.X;
+                case "Y": return img.Y;
+                default: return 0.0;
             }
 
             return 0.0;
@@ -124,6 +116,18 @@ namespace PluginTwitch
             if (tpe == "Main")
                 return twitch?.String ?? "";
 
+            var imgInfo = ImageInfo();
+            if (imgInfo == null)
+                return null;
+
+            var img = imgInfo.Item2;
+            if (img == null)
+                return null;
+
+            var variable = imgInfo.Item1;
+            if (variable == "Name")
+                return img.Name;
+
             return null;
         }
 #endif
@@ -134,6 +138,34 @@ namespace PluginTwitch
             twitch.SendMessage(args);
         }
 #endif
+
+        internal Tuple<string, Image> ImageInfo()
+        {
+            if (tpe == "TwitchImageWidth")
+                return null;
+
+            if (tpe == "TwitchImageHeight")
+                return null;
+
+            if (!tpe.StartsWith("TwitchImage"))
+                return null;
+
+            var pattern = @"TwitchImage([^\d]*)(\d*)";
+            var match = Regex.Match(tpe, pattern).Groups;
+
+            if (match.Count < 3)
+                return null;
+
+            var variable = match[1].Value;
+            var index = int.Parse(match[2].Value);
+
+            var img = twitch.GetImage(index);
+            if (img == null)
+                return null;
+
+            return new Tuple<string, Image>(variable, img);
+        }
+
     }
 
     public static class Plugin

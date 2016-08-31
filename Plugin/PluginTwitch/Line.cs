@@ -8,13 +8,13 @@ namespace PluginTwitch
 {
     class Line
     {
-        public List<Emote> Emotes;
+        public List<Image> Images;
         public string Text { get ; private set; }
 
         public Line()
         {
             Text = string.Empty;
-            Emotes = new List<Emote>();
+            Images = new List<Image>();
         }
 
         public void Add(Word w)
@@ -23,8 +23,9 @@ namespace PluginTwitch
                 Text = w.String;
             else
                 Text += " " + w.String;
-            if(w is Emote)
-                Emotes.Add(w as Emote);
+
+            if(w is Image)
+                Images.Add(w as Image);
         }
 
         public override string ToString()
