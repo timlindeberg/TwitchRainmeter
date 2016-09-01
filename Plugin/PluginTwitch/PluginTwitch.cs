@@ -129,9 +129,6 @@ namespace PluginTwitch
 
             var variable = imgInfo.Item1;
             var img = imgInfo.Item2;
-            if (img == null)
-                return 0.0;
-
             switch (variable)
             {
                 case "X": return img.X;
@@ -156,14 +153,13 @@ namespace PluginTwitch
                 return null;
 
             var img = imgInfo.Item2;
-            if (img == null)
-                return null;
-
             var variable = imgInfo.Item1;
-            if (variable == "Name")
-                return img.Name;
-
-            return null;
+            switch (variable)
+            {
+                case "Name":    return img.Name;
+                case "ToolTip": return img.DisplayName;
+                default:        return null;
+            }
         }
 #endif
         

@@ -116,7 +116,7 @@ namespace PluginTwitch
                 sb.AppendLine(line.Text);
                 var str = sb.ToString();
                 var height = GetHeight(str);
-                while (height > maxHeight)
+                while (height > maxHeight && queue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = queue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
@@ -145,11 +145,13 @@ namespace PluginTwitch
             {
                 if (emoteIndex < emotes.Count)
                 {
-                    var nextEmote = emotes[emoteIndex];
-                    if (pos == nextEmote.start)
+                    var emote = emotes[emoteIndex];
+                    if (pos == emote.Start)
                     {
-                        words.Add(nextEmote);
-                        pos = nextEmote.end + 1;
+                        var displayName = msg.Substring(emote.Start, emote.Length + 1);
+                        var img = new Image(emote.ID, displayName);
+                        words.Add(img);
+                        pos = emote.End + 1;
                         lastWord = pos + 1;
                         emoteIndex++;
                         continue;
@@ -179,15 +181,16 @@ namespace PluginTwitch
                     if (badge.StartsWith("bits"))
                         continue;
                     var fileName = badge.Replace("/1", "");
-                    badges.Add(new Image(fileName, 0, 0));
+                    var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
+                    badges.Add(new Image(fileName, displayName));
                 }
             }
             return badges;
         }
 
-        private List<Image> GetEmotes(IDictionary<string, string> tagMap)
+        private List<EmoteInfo> GetEmotes(IDictionary<string, string> tagMap)
         {
-            var emotes = new List<Image>();
+            var emotes = new List<EmoteInfo>();
 
             if (!tagMap.ContainsKey("emotes"))
                 return emotes;
@@ -204,10 +207,10 @@ namespace PluginTwitch
                     var i = index.Split('-');
                     var start = int.Parse(i[0]);
                     var end = int.Parse(i[1]);
-                    emotes.Add(new Image(id, start, end));
+                    emotes.Add(new EmoteInfo(id, start, end));
                 }
             }
-            emotes.Sort((e1, e2) => e1.start - e2.start);
+            emotes.Sort((e1, e2) => e1.Start - e2.Start);
             return emotes;
         }
 

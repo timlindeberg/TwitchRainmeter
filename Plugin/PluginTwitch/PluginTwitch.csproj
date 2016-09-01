@@ -91,6 +91,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="ChromeURLLocator.cs" />
+    <Compile Include="EmoteInfo.cs" />
     <Compile Include="ImageDownloader.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="WebBrowserUrlLocator.cs" />

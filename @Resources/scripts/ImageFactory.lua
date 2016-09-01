@@ -9,7 +9,7 @@ function Initialize()
 	
 	local t = {}
 	
-	local names = {'Name', 'X', 'Y'}
+	local names = {'Name', 'ToolTip', 'X', 'Y'}
 	for i = 0, numEmotes-1 do
 		for nameCount = 1, #names do
 			local n = names[nameCount]

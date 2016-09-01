@@ -11,18 +11,16 @@ namespace PluginTwitch
 
         public static string ImageString = null;
         public string Name;
+        public string DisplayName;
         public int X;
         public int Y;
-        public int start;
-        public int end;
 
-        public Image(string name, int start, int end) : base(ImageString)
+        public Image(string name, string displayName) : base(ImageString)
         {
             this.Name = name;
+            this.DisplayName = displayName;
             this.X = 0;
             this.Y = 0;
-            this.start = start;
-            this.end = end;
         }
 
         public override string ToString()
