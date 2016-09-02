@@ -16,6 +16,7 @@ function Initialize()
 			local name = "TwitchImage" .. n .. "%%"
 			table.insert(t, "[" .. insertNumber(name, i) .. "]")
 			insertOptions("Twitch", t, i)
+			insertOptions("Twitch" .. n, t, i)
 			table.insert(t, "Type=" ..insertNumber(name, i))
 			table.insert(t, "")
 		end

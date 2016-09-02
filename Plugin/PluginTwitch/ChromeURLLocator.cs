@@ -101,14 +101,14 @@ namespace PluginTwitch
         {
             // manually walk through the tree, searching using TreeScope.Descendants is too slow (even if it's more reliable)
             // walking path found using inspect.exe (Windows SDK) for Chrome  52.0.2743.116 m (currently the latest stable)
-            var elm1 = mainChrome.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one
+            var elm1 = mainChrome?.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one
             var elm2 = elm1?.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one here as well
             var elm3 = elm2?.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "main"));
             var elm4 = elm3?.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""));
             return elm4?.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));
         }
 
-        // This is reliable between versions but is very slow.
+        // This should be reliable between versions but is very slow.
         private AutomationElement AutomaticWalk(AutomationElement mainChrome)
         {
             return mainChrome.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));

@@ -141,7 +141,7 @@ namespace PluginTwitch
             var img = twitch.GetImage(imgInfo.Index);
             switch (variable)
             {
-                case "Name": return img?.Name;
+                case "Name": return img?.Name ?? "empty";
                 case "ToolTip": return img?.DisplayName;
                 default: return null;
             }
