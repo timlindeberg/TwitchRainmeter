@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Drawing;
 using System.Diagnostics;
 
 namespace PluginTwitch
@@ -14,86 +13,86 @@ namespace PluginTwitch
         public int ImageHeight { get; private set; }
         public List<Image> Images { get; private set; }
 
-        private Queue<Line> queue;
-        private Font font;
+        private Queue<Line> lineQueue;
+
         private int maxWidth;
         private int maxHeight;
-        private int numSpaces;
-        private Graphics graphics;
-        private StringFormat format;
         private ImageDownloader imgDownloader;
+        private StringMeasurer measurer;
 
 
-        public MessageParser(int width, int height, Font font, ImageDownloader imgDownloader)
+        public MessageParser(int width, int height, StringMeasurer measurer, ImageDownloader imgDownloader)
         {
-            queue = new Queue<Line>();
+            lineQueue = new Queue<Line>();
             Images = new List<Image>();
-            this.imgDownloader = imgDownloader;
-
             this.maxWidth = width;
             this.maxHeight = height;
-            this.font = font;
-
-            var bitmap = new Bitmap(1, 1);
-            graphics = Graphics.FromImage(bitmap);
-            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-            format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
+            this.measurer = measurer;
+            this.imgDownloader = imgDownloader;
+            this.measurer = measurer;
 
             Image.ImageString = CalculateImageString();
-            var size = MeasureString(Image.ImageString);
+            var size = measurer.MeasureString(Image.ImageString);
             ImageWidth = Convert.ToInt32(size.Width);
             ImageHeight = Convert.ToInt32(size.Height);
         }
 
+        // Calculates the number of spaces that has the most similiar width and height.
         public string CalculateImageString()
         {
-            // Calculates the number of spaces that has the most similiar width and height.
-            var s = " ";
-            var size = MeasureString(s);
+            var spaces = " ";
+            var size = measurer.MeasureString(spaces);
             double height = size.Height;
             double width = size.Width;
             double previousWidth = height;
             while(width < height)
             {
-                s += " ";
+                spaces += " ";
                 previousWidth = width;
-                width = GetWidth(s);
+                width = measurer.GetWidth(spaces);
             }
-            if (Math.Abs(previousWidth - height) <= Math.Abs(width - height))
-                return s.Substring(1);
-            else
-                return s;
+            return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
         }
 
         public void Reset()
         {
             Images = new List<Image>();
-            queue = new Queue<Line>();
+            lineQueue = new Queue<Line>();
         }
 
         public String AddMessage(string user, string message, string tags)
         {
             lock (Images)
             {
-                var words = GetWords(user, message, tags);
+                var tagMap = new Tags(tags);
+                var words = GetWords(user, message, tagMap);
                 var lines = WordWrap(words);
 
                 return BuildNewString(lines);
             }
         }
 
+        public String AddNotice(string text)
+        {
+            var words = GetWords(text, null);
+            var lines = WordWrap(words);
+
+            return BuildNewString(lines);
+        }
+
         private string BuildNewString(List<Line> lines)
         {
-            lock (queue)
+            lock (lineQueue)
             {
-                lines.ForEach(l => queue.Enqueue(l));
+                foreach(var l in lines)
+                    lineQueue.Enqueue(l);
                 ResizeQueue();
 
                 // Calculate image positions and build final string
                 var sb = new StringBuilder();
                 Images = new List<Image>();
                 var currentHeight = 0.0;
-                foreach (var line in queue)
+                foreach (var line in lineQueue)
                 {
                     foreach (var img in line.Images)
                     {
@@ -101,7 +100,7 @@ namespace PluginTwitch
                         Images.Add(img);
                     }
                     sb.AppendLine(line.Text);
-                    currentHeight = GetHeight(sb.ToString());
+                    currentHeight = measurer.GetHeight(sb.ToString());
                 }
                 return sb.ToString();
             }
@@ -111,43 +110,48 @@ namespace PluginTwitch
         {
             // Resize the queue to fit the maximum height
             StringBuilder sb = new StringBuilder();
-            foreach (var line in queue.ToList())
+            foreach (var line in lineQueue.ToList())
             {
                 sb.AppendLine(line.Text);
                 var str = sb.ToString();
-                var height = GetHeight(str);
-                while (height > maxHeight && queue.Count > 1) // Keep at least one line in the queue
+                var height = measurer.GetHeight(str);
+                while (height > maxHeight && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
-                    var firstLine = queue.Dequeue();
+                    var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
                     str = sb.ToString();
-                    height = GetHeight(str);
+                    height = measurer.GetHeight(str);
                 }
             }
         }
 
-        private List<Word> GetWords(string user, string msg, string tags)
+        private List<Word> GetWords(string user, string msg, Tags tags)
         {
-            var tagMap = GetTagMap(tags);
-
-            var badges = GetBadges(tagMap);
-            var emotes = GetEmotes(tagMap);
+            var badges = tags.GetBadges();
+            var emotes = tags.GetEmotes();
 
             var prefix = new Word(string.Format("<{0}>:", user));
 
             List<Word> words = new List<Word>();
             words.AddRange(badges);
             words.Add(prefix);
+            words.AddRange(GetWords(msg, emotes));
+            return words;
+        }
 
+        private List<Word> GetWords(string msg, List<EmoteInfo> emotes)
+        {
             var emoteIndex = 0;
             var lastWord = 0;
+            List<Word> words = new List<Word>();
             for (int pos = 0; pos < msg.Length; pos++)
             {
-                if (emoteIndex < emotes.Count)
+                if (emotes != null && emoteIndex < emotes.Count)
                 {
                     var emote = emotes[emoteIndex];
                     if (pos == emote.Start)
                     {
+                        imgDownloader.DownloadEmote(emote.ID);
                         var displayName = msg.Substring(emote.Start, emote.Length + 1);
                         var img = new Image(emote.ID, displayName);
                         words.Add(img);
@@ -160,58 +164,13 @@ namespace PluginTwitch
 
                 if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    words.Add(new Word(msg.Substring(lastWord, pos - lastWord)));
+                    words.Add(new Word(msg, lastWord, pos - lastWord));
                     lastWord = pos + 1;
                 }
             }
             if (lastWord < msg.Length)
-                words.Add(new Word(msg.Substring(lastWord, msg.Length - lastWord)));
+                words.Add(new Word(msg, lastWord, msg.Length - lastWord));
             return words;
-        }
-
-        private List<Image> GetBadges(IDictionary<string, string> tagMap)
-        {
-            var badges = new List<Image>();
-
-            if (tagMap.ContainsKey("badges"))
-            {
-                foreach (var badge in tagMap["badges"].Split(','))
-                {
-                    // Ignore cheer badges for now since they're not officialy supported
-                    if (badge.StartsWith("bits"))
-                        continue;
-                    var fileName = badge.Replace("/1", "");
-                    var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
-                    badges.Add(new Image(fileName, displayName));
-                }
-            }
-            return badges;
-        }
-
-        private List<EmoteInfo> GetEmotes(IDictionary<string, string> tagMap)
-        {
-            var emotes = new List<EmoteInfo>();
-
-            if (!tagMap.ContainsKey("emotes"))
-                return emotes;
-
-            foreach (var emote in tagMap["emotes"].Split('/'))
-            {
-                var s = emote.Split(':');
-                var id = s[0];
-
-                imgDownloader.DownloadEmote(id);
-
-                foreach (var index in s[1].Split(','))
-                {
-                    var i = index.Split('-');
-                    var start = int.Parse(i[0]);
-                    var end = int.Parse(i[1]);
-                    emotes.Add(new EmoteInfo(id, start, end));
-                }
-            }
-            emotes.Sort((e1, e2) => e1.Start - e2.Start);
-            return emotes;
         }
 
         private List<Line> WordWrap(List<Word> words)
@@ -219,47 +178,43 @@ namespace PluginTwitch
             var lines = new List<Line>();
             var currentLength = 0.0;
             var currentLine = new Line();
-            while (true)
+            var spaceWidth = measurer.GetWidth(" ");
+            for (int i = 0; i < words.Count; i++)
             {
-                var currentWord = words[0];
+                var currentWord = words[i];
                 if(currentWord is Image)
                 {
-                    var length = currentLength;
-                    if (currentLine.Text != string.Empty)
-                        length = GetWidth(currentLine.Text + " ");
+                    var length = (currentLine.Text == "") ? currentLength : currentLength + spaceWidth;
                     var img = currentWord as Image;
                     img.X = Convert.ToInt32(currentLength);
                 }
                 
                 string newString = (currentLine.Text + ' ') + currentWord.String;
-                var len = GetWidth(newString);
-                if(len > maxWidth)
+                var len = measurer.GetWidth(newString);
+                if(len <= maxWidth)
                 {
-                    if(currentLine.Text == string.Empty)
-                    {
-                        // Word is longer than a line, find break point.
-                        int breakPoint = FindBreakpoint(newString);
-                        currentLine.Add(new Word(newString.Substring(0, breakPoint)));
-                        words[0] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
-                    }
-                    // Word no longer fits in line.
-                    lines.Add(currentLine);
-                    currentLine = new Line();
-                    currentLength = 0.0;
-                }
-                else
-                {
-                    words.RemoveAt(0);
                     currentLine.Add(currentWord);
                     currentLength = len;
+                    continue;
                 }
 
-                if (words.Count == 0)
+                // Word no longer fits in line.
+                if (currentLine.Text == string.Empty)
                 {
-                    lines.Add(currentLine);
-                    break;
+                    // Word is longer than a line, find break point.
+                    int breakPoint = FindBreakpoint(newString);
+                    currentLine.Add(new Word(newString.Substring(0, breakPoint)));
+                    words[i] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
+                    i--; // revisit this word after it's split
                 }
+                lines.Add(currentLine);
+                currentLine = new Line();
+                currentLength = 0.0;
             }
+
+            if(!currentLine.IsEmpty)
+                lines.Add(currentLine);
+
             return lines;
         }
 
@@ -271,41 +226,11 @@ namespace PluginTwitch
             int breakPoint;
             for (breakPoint = 1; breakPoint <= str.Length; breakPoint++)
             {
-                var wordLen = GetWidth(str.Substring(0, breakPoint));
+                var wordLen = measurer.GetWidth(str.Substring(0, breakPoint));
                 if (wordLen >= maxWidth)
                     return breakPoint - 1;
             }
             return -1;
-        }
-
-        private double GetWidth(string s)
-        {
-            return MeasureString(s).Width;
-        }
-
-        private double GetHeight(string s)
-        {
-            return MeasureString(s).Height;
-        }
-
-        private SizeF MeasureString(string s)
-        {
-            return graphics.MeasureString(s, font, 10000, format);
-        }
-
-        private IDictionary<string, string> GetTagMap(string tags)
-        {
-            var dict = new Dictionary<string, string>();
-            if (string.IsNullOrEmpty(tags))
-                return dict;
-
-            foreach (var pair in tags.Split(';'))
-            {
-                var s = pair.Split('=');
-                if (s[1] != "")
-                    dict[s[0]] = s[1];
-            }
-            return dict;
         }
     }
 }

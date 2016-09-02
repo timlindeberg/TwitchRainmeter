@@ -10,7 +10,7 @@ namespace PluginTwitch
     {
         public List<Image> Images;
         public string Text { get ; private set; }
-
+        public bool IsEmpty { get { return Text == string.Empty; } }
         public Line()
         {
             Text = string.Empty;
@@ -19,10 +19,8 @@ namespace PluginTwitch
 
         public void Add(Word w)
         {
-            if (Text == string.Empty)
-                Text = w.String;
-            else
-                Text += " " + w.String;
+            var s = w.String;
+            Text += (Text == string.Empty) ? s : " " + s;
 
             if(w is Image)
                 Images.Add(w as Image);

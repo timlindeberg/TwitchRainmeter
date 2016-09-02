@@ -21,21 +21,20 @@ namespace PluginTwitch
         private readonly string ChannelBadgesUrl = @"https://api.twitch.tv/kraken/chat/{0}/badges";
         private readonly string EmoteUrl         = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/1.0";
 
-        private readonly string[] GlobalBadges = new string[] { "globalmod", "admin", "broadcaster", "mod", "staff", "turbo" };
+        private readonly string[] GlobalBadges = new [] { "globalmod", "admin", "broadcaster", "mod", "staff", "turbo" };
 
-        // This is needed since naming is inconsistent at Twitch. For instance, the
+        // This is needed since naming is inconsistent. For instance, the
         // globalmod image is called "globalmod.png" but the tag is called global_mod.
-        private readonly Dictionary<string, string> GlobalBadgesFileNames = new Dictionary<string, string> {
-            { "globalmod", "global_mod"},
-            { "admin", "admin" },
-            { "broadcaster", "broadcaster" },
-            { "mod", "moderator" },
-            { "staff",  "staff" },
-            { "turbo" , "turbo" }
-        };
+        private Dictionary<string, string> GlobalBadgesFileNames;
 
         public ImageDownloader(string imagePath)
         {
+            GlobalBadgesFileNames = new Dictionary<string, string>();
+            foreach (var badge in GlobalBadges)
+                GlobalBadgesFileNames[badge] = badge;
+            GlobalBadgesFileNames["globalmod"] = "global_mod";
+            GlobalBadgesFileNames["mod"] = "moderator";
+
             ImagePath = imagePath;
             beingDownloaded = new HashSet<string>();
             webClient = new WebClient();
@@ -45,7 +44,6 @@ namespace PluginTwitch
         {
             foreach(var badge in GlobalBadges)
             {
-                // Ugh, why can't the file be name global_mod.png?
                 string fileName = GlobalBadgesFileNames[badge];
                 var url = string.Format(GlobalBadgeUrl, badge);
                 DownloadImage(url, fileName, replaceExistingFile: false);
@@ -73,33 +71,29 @@ namespace PluginTwitch
             DownloadImage(url, id, replaceExistingFile: false);
         }
 
+        private static Regex SubscriberRegex = new Regex("\"subscriber\":{(.+?)}");
+        private static Regex ImgUrlRegex = new Regex("\"image\":\"(.+?)\"");
         private string GetSubscriberBadgeUrl(string json)
         {
-            var subscriber = Regex.Match(json, "\"subscriber\":{(.+?)}").Groups[1].Value;
-            var imgUrl = Regex.Match(subscriber, "\"image\":\"(.+?)\"").Groups[1].Value;
+            var subscriber = SubscriberRegex.Match(json).Groups[1].Value;
+            var imgUrl = ImgUrlRegex.Match(subscriber).Groups[1].Value;
             return imgUrl;
         }
 
         private void DownloadImage(string url, string fileName, bool replaceExistingFile)
         {
-            lock (beingDownloaded)
-            {
-                if (beingDownloaded.Contains(fileName))
-                    return;
+            if (beingDownloaded.Contains(fileName))
+                return;
 
+            lock (beingDownloaded)
                 beingDownloaded.Add(fileName);
-            }
 
             var file = string.Format("{0}\\{1}.png", ImagePath, fileName);
             if (replaceExistingFile || !File.Exists(file))
-            {
                 webClient.DownloadFile(url, file);
-            }
 
             lock (beingDownloaded)
-            {
                 beingDownloaded.Remove(fileName);
-            }
         }
     }
 }

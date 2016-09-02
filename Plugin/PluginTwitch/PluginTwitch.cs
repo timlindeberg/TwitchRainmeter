@@ -1,5 +1,4 @@
-﻿// Uncomment these only if you want to export GetString() or ExecuteBang().
-#define DLLEXPORT_GETSTRING
+﻿#define DLLEXPORT_GETSTRING
 #define DLLEXPORT_EXECUTEBANG
 
 using System;
@@ -10,13 +9,6 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Automation;
 
-// Overview: This is a blank canvas on which to build your plugin.
-
-// Note: Measure.GetString, Plugin.GetString, Measure.ExecuteBang, and
-// Plugin.ExecuteBang have been commented out. If you need GetString
-// and/or ExecuteBang and you have read what they are used for from the
-// SDK docs, uncomment the function(s). Otherwise leave them commented out
-// (or get rid of them)!
 
 namespace PluginTwitch
 {
@@ -52,12 +44,7 @@ namespace PluginTwitch
                     case "chrome":
                         urlLocator = new ChromeURLLocator();
                         break;
-                    case "firefox":
-                        // todo
-                        return;
-                    case "ie":
-                        return;
-                    default: return;
+                    default: return; // TODO: Support other browsers
                 }
             }
             var channel = urlLocator.TwitchChannel;
@@ -82,25 +69,26 @@ namespace PluginTwitch
 
                 var font = new Font(fontFace, fontSize);
                 var imgDownloader = new ImageDownloader(imageDir);
-                var messageParser = new MessageParser(width, height, font, imgDownloader);
+                var stringMeasurer = new StringMeasurer(font);
+                var messageParser = new MessageParser(width, height, stringMeasurer, imgDownloader);
                 twitch = new TwitchClient(user, ouath, messageParser, imgDownloader);
             }
 
-            string newChannel = api.ReadString("Channel", "").ToLower();
+            string channel = api.ReadString("Channel", "").ToLower();
 
-            if (newChannel == string.Empty)
+            if (channel == string.Empty)
             {
                 twitch.LeaveChannel();
                 return;
             }
 
-            if (newChannel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
+            if (channel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
                 return;
 
-            if (!newChannel.StartsWith("#"))
-                newChannel = "#" + newChannel;
+            if (!channel.StartsWith("#"))
+                channel = "#" + channel;
 
-            twitch.JoinChannel(newChannel);
+            twitch.JoinChannel(channel);
         }
 
         internal void Cleanup()
@@ -109,36 +97,33 @@ namespace PluginTwitch
             twitch = null;
         }
 
-        internal double Update()    
+        internal double Update()
         {
             if (twitch == null)
                 return 0.0;
 
             if (tpe == "InChannel")
-                 return twitch.IsInChannel ? 1.0 : 0.0;
+                return twitch.IsInChannel ? 1.0 : 0.0;
 
-            if (tpe == "TwitchImageWidth")
-                return twitch.ImageWidth;
-
-            if (tpe == "TwitchImageHeight")
-                return twitch.ImageHeight;
-
-            var imgInfo = ImageInfo();
+            var imgInfo = GetImageInfo();
             if (imgInfo == null)
                 return 0.0;
 
-            var variable = imgInfo.Item1;
-            var img = imgInfo.Item2;
-            switch (variable)
+            var type = imgInfo.Type;
+            var img = twitch.GetImage(imgInfo.Index);
+            
+            switch (type)
             {
-                case "X": return img.X;
-                case "Y": return img.Y;
+                case "Width": return twitch.ImageWidth;
+                case "Height": return twitch.ImageHeight;
+                case "X": return img?.X ?? 0.0;
+                case "Y": return img?.Y ?? 0.0;
                 default: return 0.0;
             }
 
             return 0.0;
         }
-        
+
 #if DLLEXPORT_GETSTRING
         internal string GetString()
         {
@@ -148,21 +133,21 @@ namespace PluginTwitch
             if (tpe == "ChannelName")
                 return twitch.Channel;
 
-            var imgInfo = ImageInfo();
+            var imgInfo = GetImageInfo();
             if (imgInfo == null)
                 return null;
 
-            var img = imgInfo.Item2;
-            var variable = imgInfo.Item1;
+            var variable = imgInfo.Type;
+            var img = twitch.GetImage(imgInfo.Index);
             switch (variable)
             {
-                case "Name":    return img.Name;
-                case "ToolTip": return img.DisplayName;
-                default:        return null;
+                case "Name": return img?.Name;
+                case "ToolTip": return img?.DisplayName;
+                default: return null;
             }
         }
 #endif
-        
+
 #if DLLEXPORT_EXECUTEBANG
         internal void ExecuteBang(string args)
         {
@@ -170,33 +155,27 @@ namespace PluginTwitch
         }
 #endif
 
-        // We need to replicate this logic in both GetString and update
-        // since TwitchImageName is a string and TwitchImageX/Y is a double.
-        internal Tuple<string, Image> ImageInfo()
+        internal static Regex imageInfoRegex = new Regex(@"TwitchImage([^\d]*)(\d*)?");
+        internal class ImageInfo
         {
-            if (tpe == "TwitchImageWidth")
+            public string Type;
+            public int Index;
+            public ImageInfo(string var, int index) { this.Type = var; this.Index = index; }
+        }
+
+        internal ImageInfo GetImageInfo()
+        {
+            var match = imageInfoRegex.Match(tpe).Groups;
+
+            if (match.Count < 2)
                 return null;
 
-            if (tpe == "TwitchImageHeight")
-                return null;
+            var type = match[1].Value;
+            var index = -1;
+            if(match.Count >= 3 && match[2].Value != string.Empty) 
+                index = int.Parse(match[2].Value);
 
-            if (!tpe.StartsWith("TwitchImage"))
-                return null;
-
-            var pattern = @"TwitchImage([^\d]*)(\d*)";
-            var match = Regex.Match(tpe, pattern).Groups;
-
-            if (match.Count < 3)
-                return null;
-
-            var variable = match[1].Value;
-            var index = int.Parse(match[2].Value);
-
-            var img = twitch.GetImage(index);
-            if (img == null)
-                return null;
-
-            return new Tuple<string, Image>(variable, img);
+            return new ImageInfo(type, index);
         }
 
     }

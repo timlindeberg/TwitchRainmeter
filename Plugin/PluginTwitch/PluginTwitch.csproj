@@ -94,6 +94,8 @@
     <Compile Include="EmoteInfo.cs" />
     <Compile Include="ImageDownloader.cs" />
     <Compile Include="Line.cs" />
+    <Compile Include="StringMeasurer.cs" />
+    <Compile Include="Tags.cs" />
     <Compile Include="WebBrowserUrlLocator.cs" />
     <Compile Include="Word.cs" />
     <Compile Include="Image.cs" />

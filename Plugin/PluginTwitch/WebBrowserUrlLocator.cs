@@ -12,16 +12,11 @@ namespace PluginTwitch
         public abstract string GetActiveUrl();
 
         private static readonly Regex twitchChannelRegex = new Regex(@"https:\/\/www\.twitch\.tv\/(.*)");
-        private static readonly String[] notChannels =  new[]
-            {
-                "directory",
-                "store",
-                "jobs",
-                "settings",
-                "subscriptions"
-            };
+        private static readonly String[] notChannels = new[] { "directory", "store", "jobs", "settings", "subscriptions" };
 
-        public string TwitchChannel { get
+        public string TwitchChannel
+        {
+            get
             {
                 var s = GetActiveUrl();
                 if (s == null)
@@ -39,6 +34,9 @@ namespace PluginTwitch
             }
         }
 
+        // This is kind of a hack. Instead of doing a request to see wether the url is an actual
+        // channel we just assume that it is if it's not one of the given adresses. There might
+        // be more pages that should not count as a channel.
         private bool NotAChannel(string s)
         {
             return s.Contains('/') || notChannels.Contains(s);

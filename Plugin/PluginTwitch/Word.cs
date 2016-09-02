@@ -16,6 +16,11 @@ namespace PluginTwitch
             this.String = s;
         }
 
+        public Word(string s, int start, int length)
+        {
+            this.String = s.Substring(start, length);
+        }
+
         public override string ToString()
         {
             return String;

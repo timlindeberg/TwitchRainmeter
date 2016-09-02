@@ -1,4 +1,4 @@
--- @author Malody Hoe / GitHub: madhoe / Twitter: maddhoexD
+-- @author Tim Lindeberg / GitHub: timlindeberg
 -- Script to generate the image meters used to display badges and emotes.
 -- Thanks to Malody Hoe, the author behind Monstercat Visualizer! This
 -- script is heavily based on his/her work.
