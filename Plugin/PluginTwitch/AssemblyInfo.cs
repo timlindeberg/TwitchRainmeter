@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyCopyright("© 2014 - YOUR NAME")]
+[assembly: AssemblyCopyright("© 2016 - Tim Lindeberg")]
 [assembly: AssemblyVersion("1.0.0.0")]
 
 // Do not change the entries below!

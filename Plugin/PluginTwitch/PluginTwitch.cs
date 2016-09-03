@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Windows.Automation;
 
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
 
     internal class Measure
@@ -19,10 +19,12 @@ namespace PluginTwitch
         static WebBrowserURLLocator urlLocator = null;
 
         string tpe = "";
+        string channelString;
 
         internal void Reload(API api, ref double maxValue)
         {
             tpe = api.ReadString("Type", "");
+            channelString = api.ReadString("DefaultChannelInputString", "");
 
             switch (tpe)
             {
@@ -54,41 +56,25 @@ namespace PluginTwitch
 
         internal void ReloadMain(API api)
         {
-            if (twitch == null)
-            {
-                string user = api.ReadString("Username", "").ToLower();
-                string ouath = api.ReadString("Ouath", "");
-                string fontFace = api.ReadString("FontFace", "");
-                string imageDir = api.ReadString("ImageDir", "");
-                int width = api.ReadInt("Width", 500);
-                int height = api.ReadInt("Height", 500);
-                int fontSize = api.ReadInt("FontSize", 0);
-
-                if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
-                    return;
-
-                var font = new Font(fontFace, fontSize);
-                var imgDownloader = new ImageDownloader(imageDir);
-                var stringMeasurer = new StringMeasurer(font);
-                var messageParser = new MessageParser(width, height, stringMeasurer, imgDownloader);
-                twitch = new TwitchClient(user, ouath, messageParser, imgDownloader);
-            }
-
-            string channel = api.ReadString("Channel", "").ToLower();
-
-            if (channel == string.Empty)
-            {
-                twitch.LeaveChannel();
-                return;
-            }
-
-            if (channel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
+            if (twitch != null)
                 return;
 
-            if (!channel.StartsWith("#"))
-                channel = "#" + channel;
+            string user = api.ReadString("Username", "").ToLower();
+            string ouath = api.ReadString("Ouath", "");
+            string fontFace = api.ReadString("FontFace", "");
+            string imageDir = api.ReadString("ImageDir", "");
+            int width = api.ReadInt("Width", 500);
+            int height = api.ReadInt("Height", 500);
+            int fontSize = api.ReadInt("FontSize", 0);
+            
+            if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
+                return;
 
-            twitch.JoinChannel(channel);
+            var font = new Font(fontFace, fontSize);
+            var imgDownloader = new ImageDownloader(imageDir);
+            var stringMeasurer = new StringMeasurer(font);
+            var messageParser = new MessageParser(width, height, stringMeasurer, imgDownloader);
+            twitch = new TwitchClient(user, ouath, messageParser, imgDownloader);
         }
 
         internal void Cleanup()
@@ -102,7 +88,7 @@ namespace PluginTwitch
             if (twitch == null)
                 return 0.0;
 
-            if (tpe == "InChannel")
+            if (tpe == "IsInChannel")
                 return twitch.IsInChannel ? 1.0 : 0.0;
 
             var imgInfo = GetImageInfo();
@@ -120,8 +106,6 @@ namespace PluginTwitch
                 case "Y": return img?.Y ?? 0.0;
                 default: return 0.0;
             }
-
-            return 0.0;
         }
 
 #if DLLEXPORT_GETSTRING
@@ -131,14 +115,20 @@ namespace PluginTwitch
                 return twitch?.String ?? "";
 
             if (tpe == "ChannelName")
-                return twitch.Channel;
+            {
+                var str = channelString ?? "";
+                if (twitch == null)
+                    return str;
+
+                return twitch.IsInChannel ? twitch.Channel : str;
+            }
 
             var imgInfo = GetImageInfo();
             if (imgInfo == null)
                 return null;
 
             var variable = imgInfo.Type;
-            var img = twitch.GetImage(imgInfo.Index);
+            var img = twitch?.GetImage(imgInfo.Index);
             switch (variable)
             {
                 case "Name": return img?.Name ?? "empty";
@@ -151,7 +141,33 @@ namespace PluginTwitch
 #if DLLEXPORT_EXECUTEBANG
         internal void ExecuteBang(string args)
         {
-            twitch.SendMessage(args);
+            if (twitch == null || tpe != "Main")
+                return;
+
+            if(args.StartsWith("SendMessage "))
+            {
+                twitch.SendMessage(args.Replace("SendMessage ", ""));
+                return;
+            }
+
+            if(args.StartsWith("JoinChannel "))
+            {
+                string channel = args.Replace("JoinChannel ", "").ToLower();
+
+                if (channel == string.Empty)
+                {
+                    twitch.LeaveChannel();
+                    return;
+                }
+
+                if (channel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
+                    return;
+
+                if (!channel.StartsWith("#"))
+                    channel = "#" + channel;
+
+                twitch.JoinChannel(channel);
+            }
         }
 #endif
 

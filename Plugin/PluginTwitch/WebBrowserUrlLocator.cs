@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public abstract class WebBrowserURLLocator
     {

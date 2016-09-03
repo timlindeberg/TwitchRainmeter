@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public class MessageParser
     {
@@ -66,17 +66,19 @@ namespace PluginTwitch
             {
                 var tagMap = new Tags(tags);
                 var words = GetWords(user, message, tagMap);
-                var lines = WordWrap(words);
-
-                return BuildNewString(lines);
+                return BuildNewString(words);
             }
         }
 
         public String AddNotice(string text)
         {
             var words = GetWords(text, null);
-            var lines = WordWrap(words);
+            return BuildNewString(words);
+        }
 
+        private string BuildNewString(List<Word> words)
+        {
+            var lines = WordWrap(words);
             return BuildNewString(lines);
         }
 

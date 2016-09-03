@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public class StringMeasurer
     {

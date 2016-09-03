@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 using System.Net;
 using System.IO;
 using System.Diagnostics;
-using System.Json;
 using System.Text.RegularExpressions;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public class ImageDownloader
     {
@@ -58,11 +57,10 @@ namespace PluginTwitch
                     return;
                 DownloadImage(subscriberBadgeUrl, "subscriber", replaceExistingFile: true);
             }
-            catch (WebException e)
+            catch (WebException)
             {
                 // Channel doesn't exist, do nothing
             }
-            
         }
 
         public void DownloadEmote(string id)

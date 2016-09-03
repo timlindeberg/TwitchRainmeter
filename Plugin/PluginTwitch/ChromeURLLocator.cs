@@ -7,7 +7,7 @@ using System.Windows.Automation;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public class ChromeURLLocator : WebBrowserURLLocator
     {

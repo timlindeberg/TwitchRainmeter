@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 
-namespace PluginTwitch
+namespace PluginTwitchChat
 {
     public class TwitchClient
     {
