@@ -221,6 +221,29 @@ namespace IrcDotNet
         }
 
         /// <summary>
+        ///     Process USERNOTICE messages received from the server.
+        /// </summary>
+        /// <param name="message">The message received from the server.</param>
+        [MessageProcessor("usernotice")]
+        protected internal void ProcessMessageUserNotice(IrcMessage message)
+        {
+            // Get list of message targets.
+            Debug.Assert(message.Parameters[0] != null);
+            var targets = message.Parameters[0].Split(',').Select(n => GetMessageTarget(n)).ToArray();
+
+            // Get message text, can be null.
+            var text = message.Parameters[1];
+
+            // Process message for each given target.
+            foreach (var curTarget in targets)
+            {
+                Debug.Assert(curTarget != null);
+                var messageHandler = curTarget as IIrcMessageReceiveHandler ?? localUser;
+                messageHandler.HandleUserNoticeReceived(message.Source, targets, text, message.Tags);
+            }
+        }
+
+        /// <summary>
         ///     Process NOTICE messages received from the server.
         /// </summary>
         /// <param name="message">The message received from the server.</param>

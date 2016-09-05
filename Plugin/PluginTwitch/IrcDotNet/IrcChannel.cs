@@ -109,6 +109,11 @@ namespace IrcDotNet
         /// </summary>
         public event EventHandler<IrcMessageEventArgs> NoticeReceived;
 
+        /// <summary>
+        ///     Occurs when the channel has received a user notice.
+        /// </summary>
+        public event EventHandler<IrcMessageEventArgs> UserNoticeReceived;
+
         #region IIrcMessageTarget Members
 
         string IIrcMessageTarget.Name
@@ -446,6 +451,14 @@ namespace IrcDotNet
                 OnNoticeReceived(new IrcMessageEventArgs(source, targets, text, null, Client.TextEncoding));
         }
 
+        internal void HandleUserNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text, string tags)
+        {
+            var previewEventArgs = new IrcPreviewMessageEventArgs(source, targets, text, tags, Client.TextEncoding);
+            OnPreviewMessageReceived(previewEventArgs);
+            if (!previewEventArgs.Handled)
+                OnUserNoticeReceived(new IrcMessageEventArgs(source, targets, text, tags, Client.TextEncoding));
+        }
+
         /// <summary>
         ///     Raises the <see cref="UsersListReceived" /> event.
         /// </summary>
@@ -556,6 +569,18 @@ namespace IrcDotNet
                 handler(this, e);
         }
 
+
+        /// <summary>
+        ///     Raises the <see cref="NoticeReceived" /> event.
+        /// </summary>
+        /// <param name="e">The <see cref="IrcMessageEventArgs" /> instance containing the event data.</param>
+        protected virtual void OnUserNoticeReceived(IrcMessageEventArgs e)
+        {
+            var handler = UserNoticeReceived;
+            if (handler != null)
+                handler(this, e);
+        }
+
         /// <summary>
         ///     Raises the <see cref="PreviewNoticeReceived" /> event.
         /// </summary>
@@ -599,6 +624,11 @@ namespace IrcDotNet
             string text)
         {
             HandleNoticeReceived(source, targets, text);
+        }
+
+        void IIrcMessageReceiveHandler.HandleUserNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text, string tags)
+        {
+            HandleUserNoticeReceived(source, targets, text, tags);
         }
 
         #endregion

@@ -88,7 +88,16 @@ namespace PluginTwitchChat
 
             var file = string.Format("{0}\\{1}.png", ImagePath, fileName);
             if (replaceExistingFile || !File.Exists(file))
-                webClient.DownloadFile(url, file);
+            {
+                try
+                {
+                    webClient.DownloadFile(url, file);
+                }
+                catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
+                {
+                    // an error occured when fetching the file, do nothing
+                }
+            }
 
             lock (beingDownloaded)
                 beingDownloaded.Remove(fileName);

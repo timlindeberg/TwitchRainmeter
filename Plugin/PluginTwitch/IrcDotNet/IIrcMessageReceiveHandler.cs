@@ -22,5 +22,7 @@ namespace IrcDotNet
         /// <param name="targets">A collection of the target of the notice.</param>
         /// <param name="text">The text of the message.</param>
         void HandleNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text);
+
+        void HandleUserNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text, string tags);
     }
 }

@@ -14,23 +14,20 @@ namespace PluginTwitchChat
     public class TwitchClient
     {
 
-        public String String { get; private set; }
         public String Channel { get; private set; }
-        public int ImageWidth { get { return messageParser.ImageWidth; } }
-        public int ImageHeight { get { return messageParser.ImageHeight; } }
         public bool IsInChannel { get; private set; }
 
         private const string Server = "irc.twitch.tv";
 
         private TwitchIrcClient client;
         private TwitchIrcClient senderClient;
-        private MessageParser messageParser;
+        private MessageHandler messageHandler;
         private ImageDownloader imgDownloader;
         private String username;
         private String ouath;
         private bool isConnected;
 
-        public TwitchClient(string username, string ouath, MessageParser messageParser, ImageDownloader imgDownloader)
+        public TwitchClient(string username, string ouath, MessageHandler messageHandler, ImageDownloader imgDownloader)
         {
             isConnected = false;
             client = new TwitchIrcClient();
@@ -38,7 +35,7 @@ namespace PluginTwitchChat
             Channel = "";
             this.username = username;
             this.ouath = ouath;
-            this.messageParser = messageParser;
+            this.messageHandler = messageHandler;
             this.imgDownloader = imgDownloader;
         }
 
@@ -47,7 +44,7 @@ namespace PluginTwitchChat
             if (isConnected)
                 return;
 
-            String = string.Format("Starting to connect to twitch as {0}.", username);
+            messageHandler.String = string.Format("Starting to connect to twitch as {0}.", username);
 
             client.FloodPreventer = new IrcStandardFloodPreventer(4, 2000);
             client.Registered += ClientRegistered;
@@ -63,13 +60,13 @@ namespace PluginTwitchChat
                     client.Connect(Server, false, ircRegistrationInfo);
                     if (!connectedEvent.Wait(waitTime))
                     {
-                        String = "Connection to Twitch timed out.";
+                        messageHandler.String = "Connection to Twitch timed out.";
                         return;
                     }
                 }
                 if (!registeredEvent.Wait(waitTime))
                 {
-                    String = "Could not register to Twitch. Did provide a user name and Ouath?";
+                    messageHandler.String = "Could not register to Twitch. Did provide a user name and Ouath?";
                     return;
                 }
                 isConnected = true;
@@ -89,6 +86,7 @@ namespace PluginTwitchChat
             client.Channels.Join(newChannel);
             Channel = newChannel;
             imgDownloader.DownloadBadges(newChannel);
+            //messageParser.AddResubscription("2 months of clintRem", @"@badges=subscriber/1,turbo/1;color=#FFFF00;display-name=KaedenKing;emotes=108694:12-19;login=kaedenking;mod=0;msg-id=resub;msg-param-months=2;room-id=86268118;subscriber=1;system-msg=KaedenKing\ssubscribed\sfor\s2\smonths\sin\sa\srow!;turbo=1;user-id=41952511;user-type=");
         }
 
         public void LeaveChannel()
@@ -97,9 +95,8 @@ namespace PluginTwitchChat
                 return;
 
             client.Channels.Leave(Channel);
-            messageParser.Reset();
+            messageHandler.Reset();
             Channel = "";
-            String = "";
         }
 
         public void Disconnect()
@@ -114,11 +111,14 @@ namespace PluginTwitchChat
 
         public Image GetImage(int index)
         {
-            var images = messageParser.Images;
-            if (index < 0 || index >= images.Count)
-                return null;
+            lock (messageHandler.Images)
+            {
+                var images = messageHandler.Images;
+                if (index < 0 || index >= images.Count)
+                    return null;
 
-            return images[index];
+                return images[index];
+            }
         }
 
         public void SendMessage(string msg)
@@ -147,7 +147,9 @@ namespace PluginTwitchChat
             e.Channel.MessageReceived += ChannelMessageReceived;
             e.Channel.NoticeReceived -= ChannelNoticeReceived;
             e.Channel.NoticeReceived += ChannelNoticeReceived;
-            String = string.Format("Joined the channel {0}.", e.Channel.Name);
+            e.Channel.UserNoticeReceived -= UserNoticeMessageRecieved;
+            e.Channel.UserNoticeReceived += UserNoticeMessageRecieved;
+            messageHandler.String = string.Format("Joined the channel {0}.", e.Channel.Name);
             IsInChannel = true;
         }
 
@@ -156,16 +158,22 @@ namespace PluginTwitchChat
             IsInChannel = false;
         }
 
+        private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)
+        {
+            messageHandler.AddMessage(new Resubscription(e.Text, e.Tags));
+        }
+
         private void ChannelMessageReceived(object sender, IrcMessageEventArgs e)
         {
-            lock (String)
-                String = messageParser.AddMessage(e.Source.Name, e.Text, e.Tags);
+            if (e.Source.Name == "twitchnotify")
+                messageHandler.AddMessage(new Notice(e.Text));
+            else
+                messageHandler.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)
         {
-            lock (String)
-                String = messageParser.AddNotice(e.Text);
+              messageHandler.AddMessage(new Notice(e.Text));
         }
 
     }

@@ -1,7 +1,4 @@
-﻿#define DLLEXPORT_GETSTRING
-#define DLLEXPORT_EXECUTEBANG
-
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using Rainmeter;
 using System.Text.RegularExpressions;
@@ -16,6 +13,7 @@ namespace PluginTwitchChat
     internal class Measure
     {
         static TwitchClient twitch = null;
+        static MessageHandler messageHandler = null;
         static WebBrowserURLLocator urlLocator = null;
 
         string tpe = "";
@@ -63,6 +61,7 @@ namespace PluginTwitchChat
             string ouath = api.ReadString("Ouath", "");
             string fontFace = api.ReadString("FontFace", "");
             string imageDir = api.ReadString("ImageDir", "");
+            string seperatorSign = api.ReadString("SeperatorSign", "");
             int width = api.ReadInt("Width", 500);
             int height = api.ReadInt("Height", 500);
             int fontSize = api.ReadInt("FontSize", 0);
@@ -73,8 +72,8 @@ namespace PluginTwitchChat
             var font = new Font(fontFace, fontSize);
             var imgDownloader = new ImageDownloader(imageDir);
             var stringMeasurer = new StringMeasurer(font);
-            var messageParser = new MessageParser(width, height, stringMeasurer, imgDownloader);
-            twitch = new TwitchClient(user, ouath, messageParser, imgDownloader);
+            messageHandler = new MessageHandler(width, height, stringMeasurer, seperatorSign, imgDownloader);
+            twitch = new TwitchClient(user, ouath, messageHandler, imgDownloader);
         }
 
         internal void Cleanup()
@@ -88,6 +87,12 @@ namespace PluginTwitchChat
             if (twitch == null)
                 return 0.0;
 
+            if(tpe == "Main")
+            {
+                messageHandler.Update();
+                return 0.0; ;
+            }
+
             if (tpe == "IsInChannel")
                 return twitch.IsInChannel ? 1.0 : 0.0;
 
@@ -100,19 +105,18 @@ namespace PluginTwitchChat
             
             switch (type)
             {
-                case "Width": return twitch.ImageWidth;
-                case "Height": return twitch.ImageHeight;
+                case "Width": return messageHandler.ImageWidth;
+                case "Height": return messageHandler.ImageHeight;
                 case "X": return img?.X ?? 0.0;
                 case "Y": return img?.Y ?? 0.0;
                 default: return 0.0;
             }
         }
 
-#if DLLEXPORT_GETSTRING
         internal string GetString()
         {
             if (tpe == "Main")
-                return twitch?.String ?? "";
+                return messageHandler?.String ?? "";
 
             if (tpe == "ChannelName")
             {
@@ -136,9 +140,7 @@ namespace PluginTwitchChat
                 default: return null;
             }
         }
-#endif
 
-#if DLLEXPORT_EXECUTEBANG
         internal void ExecuteBang(string args)
         {
             if (twitch == null || tpe != "Main")
@@ -169,7 +171,6 @@ namespace PluginTwitchChat
                 twitch.JoinChannel(channel);
             }
         }
-#endif
 
         internal static Regex imageInfoRegex = new Regex(@"TwitchImage([^\d]*)(\d*)?");
         internal class ImageInfo
@@ -198,9 +199,7 @@ namespace PluginTwitchChat
 
     public static class Plugin
     {
-#if DLLEXPORT_GETSTRING
         static IntPtr StringBuffer = IntPtr.Zero;
-#endif
 
         [DllExport]
         public static void Initialize(ref IntPtr data, IntPtr rm)
@@ -214,13 +213,11 @@ namespace PluginTwitchChat
             Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
             measure.Cleanup();
             GCHandle.FromIntPtr(data).Free();
-#if DLLEXPORT_GETSTRING
             if (StringBuffer != IntPtr.Zero)
             {
                 Marshal.FreeHGlobal(StringBuffer);
                 StringBuffer = IntPtr.Zero;
             }
-#endif
         }
 
         [DllExport]
@@ -237,7 +234,6 @@ namespace PluginTwitchChat
             return measure.Update();
         }
         
-#if DLLEXPORT_GETSTRING
         [DllExport]
         public static IntPtr GetString(IntPtr data)
         {
@@ -256,15 +252,12 @@ namespace PluginTwitchChat
 
             return StringBuffer;
         }
-#endif
 
-#if DLLEXPORT_EXECUTEBANG
         [DllExport]
         public static void ExecuteBang(IntPtr data, IntPtr args)
         {
             Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
             measure.ExecuteBang(Marshal.PtrToStringUni(args));
         }
-#endif
     }
 }

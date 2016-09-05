@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,13 +8,17 @@ using System.Diagnostics;
 
 namespace PluginTwitchChat
 {
-    public class MessageParser
+    public class MessageHandler
     {
+        public string String { get; set; }
         public int ImageWidth { get; private set; }
         public int ImageHeight { get; private set; }
         public List<Image> Images { get; private set; }
+        public Line Seperator;
 
+        private string SeperatorSign;
         private Queue<Line> lineQueue;
+        private Queue<Message> msgQueue;
 
         private int maxWidth;
         private int maxHeight;
@@ -21,113 +26,88 @@ namespace PluginTwitchChat
         private StringMeasurer measurer;
 
 
-        public MessageParser(int width, int height, StringMeasurer measurer, ImageDownloader imgDownloader)
+        public MessageHandler(int width, int height, StringMeasurer measurer, String seperatorSign, ImageDownloader imgDownloader)
         {
             lineQueue = new Queue<Line>();
+            msgQueue = new Queue<Message>();
             Images = new List<Image>();
             this.maxWidth = width;
             this.maxHeight = height;
             this.measurer = measurer;
             this.imgDownloader = imgDownloader;
             this.measurer = measurer;
+            this.SeperatorSign = seperatorSign;
 
             Image.ImageString = CalculateImageString();
             var size = measurer.MeasureString(Image.ImageString);
+            if(SeperatorSign != "")
+            {
+                Seperator = new Line();
+                Seperator.Add(CalculateSeperator());
+            }
             ImageWidth = Convert.ToInt32(size.Width);
             ImageHeight = Convert.ToInt32(size.Height);
         }
 
-        // Calculates the number of spaces that has the most similiar width and height.
-        public string CalculateImageString()
+        public void Update()
         {
-            var spaces = " ";
-            var size = measurer.MeasureString(spaces);
-            double height = size.Height;
-            double width = size.Width;
-            double previousWidth = height;
-            while(width < height)
+            if (msgQueue.Count == 0)
+                return;
+
+            lock (msgQueue)
             {
-                spaces += " ";
-                previousWidth = width;
-                width = measurer.GetWidth(spaces);
+                while (msgQueue.Count > 0)
+                    msgQueue.Dequeue().AddLines(this);
             }
-            return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
+
+            ResizeQueue();
+
+            // Calculate image Y positions and build final string
+            var sb = new StringBuilder();
+            Images = new List<Image>();
+            var currentHeight = 0.0;
+            foreach (var line in lineQueue)
+            {
+                foreach (var img in line.Images)
+                {
+                    img.Y = Convert.ToInt32(currentHeight);
+                    Images.Add(img);
+                }
+                sb.AppendLine(line.Text);
+                currentHeight = measurer.GetHeight(sb.ToString());
+            }
+            String = sb.ToString();
         }
 
         public void Reset()
         {
             Images = new List<Image>();
+            String = "";
             lineQueue = new Queue<Line>();
+            msgQueue = new Queue<Message>();
         }
 
-        public String AddMessage(string user, string message, string tags)
+        public void AddSeperator(List<Line> lines)
         {
-            lock (Images)
+            if (Seperator != null)
+                lines.Add(Seperator);
+        }
+
+        public void AddLines(List<Line> lines)
+        {
+            foreach (var l in lines)
+                lineQueue.Enqueue(l);
+        }
+
+        public void AddMessage(Message msg)
+        {
+            lock (msgQueue)
             {
-                var tagMap = new Tags(tags);
-                var words = GetWords(user, message, tagMap);
-                return BuildNewString(words);
+                msgQueue.Enqueue(msg);
             }
         }
 
-        public String AddNotice(string text)
-        {
-            var words = GetWords(text, null);
-            return BuildNewString(words);
-        }
-
-        private string BuildNewString(List<Word> words)
-        {
-            var lines = WordWrap(words);
-            return BuildNewString(lines);
-        }
-
-        private string BuildNewString(List<Line> lines)
-        {
-            lock (lineQueue)
-            {
-                foreach(var l in lines)
-                    lineQueue.Enqueue(l);
-                ResizeQueue();
-
-                // Calculate image positions and build final string
-                var sb = new StringBuilder();
-                Images = new List<Image>();
-                var currentHeight = 0.0;
-                foreach (var line in lineQueue)
-                {
-                    foreach (var img in line.Images)
-                    {
-                        img.Y = Convert.ToInt32(currentHeight);
-                        Images.Add(img);
-                    }
-                    sb.AppendLine(line.Text);
-                    currentHeight = measurer.GetHeight(sb.ToString());
-                }
-                return sb.ToString();
-            }
-        }
-
-        private void ResizeQueue()
-        {
-            // Resize the queue to fit the maximum height
-            StringBuilder sb = new StringBuilder();
-            foreach (var line in lineQueue.ToList())
-            {
-                sb.AppendLine(line.Text);
-                var str = sb.ToString();
-                var height = measurer.GetHeight(str);
-                while (height > maxHeight && lineQueue.Count > 1) // Keep at least one line in the queue
-                {
-                    var firstLine = lineQueue.Dequeue();
-                    sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
-                    str = sb.ToString();
-                    height = measurer.GetHeight(str);
-                }
-            }
-        }
-
-        private List<Word> GetWords(string user, string msg, Tags tags)
+        public List<Word> GetWords(string user, string msg, Tags tags)
         {
             var badges = tags.GetBadges();
             var emotes = tags.GetEmotes();
@@ -141,7 +121,7 @@ namespace PluginTwitchChat
             return words;
         }
 
-        private List<Word> GetWords(string msg, List<EmoteInfo> emotes)
+        public List<Word> GetWords(string msg, List<EmoteInfo> emotes)
         {
             var emoteIndex = 0;
             var lastWord = 0;
@@ -175,9 +155,14 @@ namespace PluginTwitchChat
             return words;
         }
 
-        private List<Line> WordWrap(List<Word> words)
+
+        public List<Line> WordWrap(List<Word> words)
         {
-            var lines = new List<Line>();
+            return WordWrap(words, new List<Line>());
+        }
+
+        public List<Line> WordWrap(List<Word> words, List<Line> lines)
+        {
             var currentLength = 0.0;
             var currentLine = new Line();
             var spaceWidth = measurer.GetWidth(" ");
@@ -190,8 +175,14 @@ namespace PluginTwitchChat
                     var img = currentWord as Image;
                     img.X = Convert.ToInt32(currentLength);
                 }
-                
-                string newString = (currentLine.Text + ' ') + currentWord.String;
+
+
+                string newString;
+                if (currentLine.Text == string.Empty)
+                    newString = currentWord.String;
+                else
+                    newString = (currentLine.Text + ' ') + currentWord.String;
+
                 var len = measurer.GetWidth(newString);
                 if(len <= maxWidth)
                 {
@@ -207,17 +198,36 @@ namespace PluginTwitchChat
                     int breakPoint = FindBreakpoint(newString);
                     currentLine.Add(new Word(newString.Substring(0, breakPoint)));
                     words[i] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
-                    i--; // revisit this word after it's split
                 }
                 lines.Add(currentLine);
                 currentLine = new Line();
                 currentLength = 0.0;
+                i--; // revisit this word
             }
 
             if(!currentLine.IsEmpty)
                 lines.Add(currentLine);
 
             return lines;
+        }
+
+        private void ResizeQueue()
+        {
+            // Resize the queue to fit the maximum height
+            StringBuilder sb = new StringBuilder();
+            foreach (var line in lineQueue.ToList())
+            {
+                sb.AppendLine(line.Text);
+                var str = sb.ToString();
+                var height = measurer.GetHeight(str);
+                while (height > maxHeight && lineQueue.Count > 1) // Keep at least one line in the queue
+                {
+                    var firstLine = lineQueue.Dequeue();
+                    sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
+                    str = sb.ToString();
+                    height = measurer.GetHeight(str);
+                }
+            }
         }
 
         private int FindBreakpoint(string str)
@@ -233,6 +243,37 @@ namespace PluginTwitchChat
                     return breakPoint - 1;
             }
             return -1;
+        }
+
+        private string CalculateSeperator()
+        {
+            var c = SeperatorSign[0];
+            string s = "";
+            double w;
+            do
+            {
+                s += c;
+                w = measurer.GetWidth(s);
+            } while (w < maxWidth);
+
+            return s.Substring(1);
+        }
+
+        // Calculates the number of spaces that has the most similiar width and height.
+        private string CalculateImageString()
+        {
+            var spaces = " ";
+            var size = measurer.MeasureString(spaces);
+            double height = size.Height;
+            double width = size.Width;
+            double previousWidth = height;
+            while (width < height)
+            {
+                spaces += " ";
+                previousWidth = width;
+                width = measurer.GetWidth(spaces);
+            }
+            return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
         }
     }
 }

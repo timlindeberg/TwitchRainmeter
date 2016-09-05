@@ -24,6 +24,11 @@ namespace PluginTwitchChat
             }
         }
 
+        public string this[string s]
+        {
+            get { return tagMap[s]; }
+        }
+
         public List<Image> GetBadges()
         {
             var badges = new List<Image>();

@@ -218,8 +218,6 @@ namespace IrcDotNet
         {
             if (targets == null)
                 throw new ArgumentNullException("target");
-            if (text == null)
-                throw new ArgumentNullException("text");
             if (encoding == null)
                 throw new ArgumentNullException("textEncoding");
 

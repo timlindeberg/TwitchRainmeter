@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace PluginTwitchChat
 {
@@ -15,10 +17,13 @@ namespace PluginTwitchChat
 
         public StringMeasurer(Font font)
         {
+            Application.SetCompatibleTextRenderingDefault(false);
             Font = font;
             graphics = Graphics.FromImage(new Bitmap(1, 1));
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
             format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
+            //format.Alignment = StringAlignment.Center;
+            //format.LineAlignment = StringAlignment.Center;
         }
 
         public double GetWidth(string s)
@@ -33,8 +38,17 @@ namespace PluginTwitchChat
 
         public SizeF MeasureString(string s)
         {
-            return graphics.MeasureString(s, Font, 10000, format);
+            if (s == "")
+                return new SizeF(0, 0);
+
+            RectangleF rect = new RectangleF(0, 0, 10000, 10000);
+            format.SetMeasurableCharacterRanges(new [] { new CharacterRange(0, s.Length) });
+
+            Region[] regions = graphics.MeasureCharacterRanges(s, Font, rect, format);
+            rect = regions[0].GetBounds(graphics);
+            return new SizeF((rect.Right + 1.0f),(rect.Bottom + 1.0f));
         }
 
     }
+
 }

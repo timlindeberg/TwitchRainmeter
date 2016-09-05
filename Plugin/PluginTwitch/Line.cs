@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PluginTwitchChat
 {
-    class Line
+    public class Line
     {
         public List<Image> Images;
         public string Text { get ; private set; }
@@ -15,6 +15,11 @@ namespace PluginTwitchChat
         {
             Text = string.Empty;
             Images = new List<Image>();
+        }
+
+        public void Add(String s)
+        {
+            Add(new Word(s));
         }
 
         public void Add(Word w)

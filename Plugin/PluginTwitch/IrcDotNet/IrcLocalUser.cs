@@ -86,6 +86,11 @@ namespace IrcDotNet
         public event EventHandler<IrcMessageEventArgs> NoticeReceived;
 
         /// <summary>
+        ///     Occurs when the local user has received a notice.
+        /// </summary>
+        public event EventHandler<IrcMessageEventArgs> UserNoticeReceived;
+
+        /// <summary>
         ///     Occurs when the modes of the local user have changed.
         /// </summary>
         public event EventHandler<EventArgs> ModesChanged;
@@ -373,6 +378,14 @@ namespace IrcDotNet
                 OnNoticeReceived(new IrcMessageEventArgs(source, targets, text, null, Client.TextEncoding));
         }
 
+        internal void HandleUserNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text, string tags)
+        {
+            var previewEventArgs = new IrcPreviewMessageEventArgs(source, targets, text, tags, Client.TextEncoding);
+            OnPreviewMessageReceived(previewEventArgs);
+            if (!previewEventArgs.Handled)
+                OnUserNoticeReceived(new IrcMessageEventArgs(source, targets, text, tags, Client.TextEncoding));
+        }
+
         /// <summary>
         ///     Raises the <see cref="ModesChanged" /> event.
         /// </summary>
@@ -472,6 +485,13 @@ namespace IrcDotNet
                 handler(this, e);
         }
 
+        protected virtual void OnUserNoticeReceived(IrcMessageEventArgs e)
+        {
+            var handler = UserNoticeReceived;
+            if (handler != null)
+                handler(this, e);
+        }
+
         #region IIrcMessageSendHandler Members
 
         void IIrcMessageSendHandler.HandleMessageSent(IList<IIrcMessageTarget> targets, string text)
@@ -498,6 +518,11 @@ namespace IrcDotNet
             string text)
         {
             HandleNoticeReceived(source, targets, text);
+        }
+
+        void IIrcMessageReceiveHandler.HandleUserNoticeReceived(IIrcMessageSource source, IList<IIrcMessageTarget> targets, string text, string tags)
+        {
+            HandleUserNoticeReceived(source, targets, text, tags);
         }
 
         #endregion
