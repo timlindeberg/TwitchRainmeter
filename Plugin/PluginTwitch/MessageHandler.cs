@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
@@ -14,6 +15,7 @@ namespace PluginTwitchChat
         public int ImageWidth { get; private set; }
         public int ImageHeight { get; private set; }
         public List<Image> Images { get; private set; }
+        public List<Link> Links { get; private set; }
         public Line Seperator;
 
         private string SeperatorSign;
@@ -26,12 +28,14 @@ namespace PluginTwitchChat
         private ImageDownloader imgDownloader;
         private StringMeasurer measurer;
 
+        private static Regex URLRegex = new Regex(@"(https?:\/\/)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
 
         public MessageHandler(int width, int height, StringMeasurer measurer, String seperatorSign, ImageDownloader imgDownloader)
         {
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
             Images = new List<Image>();
+            Links = new List<Link>();
             String = "";
             this.maxWidth = width;
             this.maxHeight = height;
@@ -64,16 +68,25 @@ namespace PluginTwitchChat
             // Calculate image Y positions and build final string
             var sb = new StringBuilder();
             Images = new List<Image>();
+            Links = new List<Link>();
             var currentHeight = 0.0;
             foreach (var line in lineQueue)
             {
-                foreach (var img in line.Images)
-                {
-                    img.Y = Convert.ToInt32(currentHeight);
-                    Images.Add(img);
-                }
+                var prevHeight = currentHeight;
                 sb.AppendLine(line.Text);
                 currentHeight = measurer.GetHeight(sb.ToString());
+
+                foreach (var img in line.Images)
+                {
+                    img.Y = Convert.ToInt32(prevHeight);
+                    Images.Add(img);
+                }
+                foreach(var link in line.Links)
+                {
+                    link.Y = Convert.ToInt32(prevHeight);
+                    link.Height = Convert.ToInt32(currentHeight - prevHeight);
+                    Links.Add(link);
+                }
             }
             String = sb.ToString();
         }
@@ -86,9 +99,18 @@ namespace PluginTwitchChat
             return Images[index];
         }
 
+        public Link GetLink(int index)
+        {
+            if (index < 0 || index >= Links.Count)
+                return null;
+
+            return Links[index];
+        }
+
         public void Reset()
         {
             Images = new List<Image>();
+            Links = new List<Link>();
             String = "";
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
@@ -109,9 +131,7 @@ namespace PluginTwitchChat
         public void AddMessage(Message msg)
         {
             lock (msgQueue)
-            {
                 msgQueue.Enqueue(msg);
-            }
         }
 
         public List<Word> GetWords(string user, string msg, Tags tags)
@@ -153,15 +173,20 @@ namespace PluginTwitchChat
 
                 if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    words.Add(new Word(msg, lastWord, pos - lastWord));
+                    words.Add(GetWord(msg, lastWord, pos - lastWord));
                     lastWord = pos + 1;
                 }
             }
             if (lastWord < msg.Length)
-                words.Add(new Word(msg, lastWord, msg.Length - lastWord));
+                words.Add(GetWord(msg, lastWord, msg.Length - lastWord));
             return words;
         }
 
+        public Word GetWord(string msg, int start, int len)
+        {
+            var s = msg.Substring(start, len);
+            return URLRegex.IsMatch(s) ? new Link(s) : new Word(s);
+        }
 
         public List<Line> WordWrap(List<Word> words)
         {
@@ -170,28 +195,34 @@ namespace PluginTwitchChat
 
         public List<Line> WordWrap(List<Word> words, List<Line> lines)
         {
-            var currentLength = 0.0;
+            var len = 0.0;
             var line = new Line();
             for (int i = 0; i < words.Count; i++)
             {
                 bool isEmpty = line.Text == string.Empty;
-
                 var word = words[i];
-                if(word is Image)
-                {
-                    var length = isEmpty ? currentLength : currentLength + spaceWidth;
-                    var img = word as Image;
-                    img.X = Convert.ToInt32(length);
-                }
-
 
                 string newString = isEmpty ? word : (line.Text + ' ' + word);
+                var newLen = measurer.GetWidth(newString);
 
-                var len = measurer.GetWidth(newString);
-                if(len <= maxWidth)
+                if(word is Image)
+                {
+                    var x = isEmpty ? len : len + spaceWidth;
+                    var img = word as Image;
+                    img.X = Convert.ToInt32(x);
+                }
+                else if(word is Link)
+                {
+                    var x = isEmpty ? len : len + spaceWidth;
+                    var link = word as Link;
+                    link.X = Convert.ToInt32(x);
+                    link.Width = Convert.ToInt32(newLen - x);
+                }
+
+                if(newLen <= maxWidth)
                 {
                     line.Add(word);
-                    currentLength = len;
+                    len = newLen;
                     continue;
                 }
 
@@ -207,7 +238,7 @@ namespace PluginTwitchChat
                 }
                 lines.Add(line);
                 line = new Line();
-                currentLength = 0.0;
+                len = 0.0;
                 i--; // revisit this word
             }
 

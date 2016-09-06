@@ -25,8 +25,7 @@ namespace PluginTwitchChat
 
         public override string ToString()
         {
-            return string.Format("Image({0})", Name);
+            return string.Format("Image({0})", DisplayName);
         }
-
     }
 }

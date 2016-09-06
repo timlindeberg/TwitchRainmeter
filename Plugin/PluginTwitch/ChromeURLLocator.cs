@@ -45,9 +45,16 @@ namespace PluginTwitchChat
             if (patterns.Length != 1)
                 return null;
 
-            string ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0]))?.Current.Value ?? "";
-            if (ret == "")
+            string ret;
+            try
+            {
+                ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
+            }
+            catch
+            {
+                // error occured:
                 return null;
+            }
 
             // must match a domain name (and possibly "https://" in front)
             if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))

@@ -19,7 +19,8 @@ namespace PluginTwitchChat
         string String;
         string tpe = "";
         string channelString = "";
-        ImageInfo imgInfo;
+        Info imgInfo;
+        Info linkInfo;
 
         internal void Reload(API api, ref double maxValue)
         {
@@ -36,7 +37,8 @@ namespace PluginTwitchChat
                     ReloadAutoConnector(api);
                     break;
                 default:
-                    imgInfo = GetImageInfo();
+                    imgInfo = GetInfo(imageInfoRegex);
+                    linkInfo = GetInfo(linkInfoRegex);
                     if (imgInfo != null && imgInfo.Type == "Name")
                         String = "empty";
                     break;
@@ -112,29 +114,51 @@ namespace PluginTwitchChat
                     return twitch.IsInChannel ? 1.0 : 0.0;
             }
 
-            if (imgInfo == null)
-                return 0.0;
-
-            switch (imgInfo.Type)
+            if (imgInfo != null)
             {
-                case "Width":  return messageHandler.ImageWidth;
-                case "Height": return messageHandler.ImageHeight;
+                switch (imgInfo.Type)
+                {
+                    case "Width": return messageHandler.ImageWidth;
+                    case "Height": return messageHandler.ImageHeight;
+                }
+
+                var img = messageHandler.GetImage(imgInfo.Index);
+                if (img == null)
+                {
+                    if (imgInfo.Type == "Name")
+                        String = "empty";
+                    return 0.0;
+                }
+
+                switch (imgInfo.Type)
+                {
+                    case "X": return img.X;
+                    case "Y": return img.Y;
+                    case "Name": String = img.Name; break;
+                    case "ToolTip": String = img.DisplayName; break;
+                }
+                return 0.0;
             }
 
-            var img = messageHandler.GetImage(imgInfo.Index);
-            if (img == null)
+            if(linkInfo != null)
             {
-                if(imgInfo.Type == "Name")
-                    String = "empty";
-                return 0.0;
-            }
+                var link = messageHandler.GetLink(linkInfo.Index);
+                if (link == null)
+                {
+                    if (linkInfo.Type == "Url")
+                        String = "empty";
+                    return 0.0;
+                }
 
-            switch (imgInfo.Type)
-            {
-                case "X": return img.X;
-                case "Y": return img.Y;
-                case "Name": String = img.Name; break;
-                case "ToolTip": String = img.DisplayName; break;
+                switch (linkInfo.Type)
+                {
+                    case "X": return link.X;
+                    case "Y": return link.Y;
+                    case "Width": return link.Width;
+                    case "Height": return link.Height;
+                    case "Url": String = link.Url; break;
+                }
+                return 0.0;
             }
             return 0.0;
         }
@@ -176,15 +200,16 @@ namespace PluginTwitchChat
         }
 
         internal static Regex imageInfoRegex = new Regex(@"Image([^\d]*)(\d*)?");
-        internal class ImageInfo
+        internal static Regex linkInfoRegex = new Regex(@"Link([^\d]*)(\d*)?");
+        internal class Info
         {
             public string Type;
             public int Index;
         }
 
-        internal ImageInfo GetImageInfo()
+        internal Info GetInfo(Regex regex)
         {
-            var match = imageInfoRegex.Match(tpe).Groups;
+            var match = regex.Match(tpe).Groups;
 
             if (match.Count < 2)
                 return null;
@@ -194,7 +219,7 @@ namespace PluginTwitchChat
             if (match.Count >= 3 && match[2].Value != string.Empty)
                 index = int.Parse(match[2].Value);
 
-            return new ImageInfo() { Type = type, Index = index };
+            return new Info() { Type = type, Index = index };
         }
 
     }

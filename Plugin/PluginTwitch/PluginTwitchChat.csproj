@@ -91,6 +91,7 @@
     <Compile Include="EmoteInfo.cs" />
     <Compile Include="ImageDownloader.cs" />
     <Compile Include="Line.cs" />
+    <Compile Include="Link.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Notice.cs" />
     <Compile Include="PrivMessage.cs" />

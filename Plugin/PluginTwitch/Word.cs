@@ -28,7 +28,7 @@ namespace PluginTwitchChat
 
         public static implicit operator string(Word w)
         {
-            return w.ToString();
+            return w.String;
         }
     }
 }

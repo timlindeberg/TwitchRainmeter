@@ -44,8 +44,6 @@ namespace PluginTwitchChat
             if (isConnected)
                 return;
 
-            messageHandler.String = string.Format("Starting to connect to twitch as {0}.", username);
-
             client.FloodPreventer = new IrcStandardFloodPreventer(4, 2000);
             client.Registered += ClientRegistered;
             // Wait until connection has succeeded or timed out.
@@ -136,7 +134,6 @@ namespace PluginTwitchChat
             e.Channel.NoticeReceived += ChannelNoticeReceived;
             e.Channel.UserNoticeReceived -= UserNoticeMessageRecieved;
             e.Channel.UserNoticeReceived += UserNoticeMessageRecieved;
-            messageHandler.String = string.Format("Joined the channel {0}.", e.Channel.Name);
             IsInChannel = true;
         }
 
