@@ -196,12 +196,15 @@ namespace PluginTwitchChat
                     continue;
                 }
 
+                bool isEmpty = currentLine.Text == string.Empty;
                 // Word no longer fits in line.
-                if (currentLine.Text == string.Empty)
+                if (isEmpty || measurer.GetWidth(currentWord.String) > maxWidth)
                 {
-                    // Word is longer than a line, find break point.
+                    // Either the current line is empty and the word doesn't fit on one line
+                    // or the line is not empty but the word won't fit in itself either.
                     int breakPoint = FindBreakpoint(newString);
-                    currentLine.Add(new Word(newString.Substring(0, breakPoint)));
+                    var start = isEmpty ? 0 : currentLine.Text.Length + 1;
+                    currentLine.Add(new Word(newString.Substring(start, breakPoint - start)));
                     words[i] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
                 }
                 lines.Add(currentLine);
@@ -250,7 +253,7 @@ namespace PluginTwitchChat
                 else
                     end = mid;
             }
-            return end;
+            return start - 1;
         }
 
         private void CalculateSeperator()
