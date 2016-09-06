@@ -24,8 +24,7 @@ namespace PluginTwitchChat
 
         public void Add(Word w)
         {
-            var s = w.String;
-            Text += (Text == string.Empty) ? s : " " + s;
+            Text += (Text == string.Empty) ? w : ' ' + w;
 
             if(w is Image)
                 Images.Add(w as Image);

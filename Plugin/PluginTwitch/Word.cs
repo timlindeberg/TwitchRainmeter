@@ -9,7 +9,7 @@ namespace PluginTwitchChat
     public class Word
     {
 
-        public string String { get; private set; }
+        private string String;
 
         public Word(string s)
         {
@@ -24,6 +24,11 @@ namespace PluginTwitchChat
         public override string ToString()
         {
             return String;
+        }
+
+        public static implicit operator string(Word w)
+        {
+            return w.ToString();
         }
     }
 }

@@ -22,6 +22,7 @@ namespace PluginTwitchChat
 
         private int maxWidth;
         private int maxHeight;
+        private double spaceWidth;
         private ImageDownloader imgDownloader;
         private StringMeasurer measurer;
 
@@ -44,6 +45,7 @@ namespace PluginTwitchChat
             CalculateSeperator();
             ImageWidth = Convert.ToInt32(size.Width);
             ImageHeight = Convert.ToInt32(size.Height);
+            spaceWidth = measurer.GetWidth(" ");
         }
 
         public void Update()
@@ -57,7 +59,7 @@ namespace PluginTwitchChat
                     msgQueue.Dequeue().AddLines(this);
             }
 
-            ResizeQueue();
+            ResizeLineQueue();
 
             // Calculate image Y positions and build final string
             var sb = new StringBuilder();
@@ -169,59 +171,55 @@ namespace PluginTwitchChat
         public List<Line> WordWrap(List<Word> words, List<Line> lines)
         {
             var currentLength = 0.0;
-            var currentLine = new Line();
-            var spaceWidth = measurer.GetWidth(" ");
+            var line = new Line();
             for (int i = 0; i < words.Count; i++)
             {
-                var currentWord = words[i];
-                if(currentWord is Image)
+                bool isEmpty = line.Text == string.Empty;
+
+                var word = words[i];
+                if(word is Image)
                 {
-                    var length = (currentLine.Text == "") ? currentLength : currentLength + spaceWidth;
-                    var img = currentWord as Image;
-                    img.X = Convert.ToInt32(currentLength);
+                    var length = isEmpty ? currentLength : currentLength + spaceWidth;
+                    var img = word as Image;
+                    img.X = Convert.ToInt32(length);
                 }
 
 
-                string newString;
-                if (currentLine.Text == string.Empty)
-                    newString = currentWord.String;
-                else
-                    newString = (currentLine.Text + ' ') + currentWord.String;
+                string newString = isEmpty ? word : (line.Text + ' ' + word);
 
                 var len = measurer.GetWidth(newString);
                 if(len <= maxWidth)
                 {
-                    currentLine.Add(currentWord);
+                    line.Add(word);
                     currentLength = len;
                     continue;
                 }
 
-                bool isEmpty = currentLine.Text == string.Empty;
                 // Word no longer fits in line.
-                if (isEmpty || measurer.GetWidth(currentWord.String) > maxWidth)
+                if (isEmpty || measurer.GetWidth(word) > maxWidth)
                 {
                     // Either the current line is empty and the word doesn't fit on one line
                     // or the line is not empty but the word won't fit in itself either.
                     int breakPoint = FindBreakpoint(newString);
-                    var start = isEmpty ? 0 : currentLine.Text.Length + 1;
-                    currentLine.Add(new Word(newString.Substring(start, breakPoint - start)));
+                    var start = isEmpty ? 0 : line.Text.Length + 1;
+                    line.Add(new Word(newString.Substring(start, breakPoint - start)));
                     words[i] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
                 }
-                lines.Add(currentLine);
-                currentLine = new Line();
+                lines.Add(line);
+                line = new Line();
                 currentLength = 0.0;
                 i--; // revisit this word
             }
 
-            if(!currentLine.IsEmpty)
-                lines.Add(currentLine);
+            if(!line.IsEmpty)
+                lines.Add(line);
 
             return lines;
         }
 
-        private void ResizeQueue()
+        // Resize the line queue to fit the maximum height
+        private void ResizeLineQueue()
         {
-            // Resize the queue to fit the maximum height
             StringBuilder sb = new StringBuilder();
             foreach (var line in lineQueue.ToList())
             {
@@ -240,7 +238,6 @@ namespace PluginTwitchChat
 
         private int FindBreakpoint(string str)
         {
-            // Use binary search to find the break point
             int breakPoint;
             int start = 1;
             int end = str.Length;
@@ -275,6 +272,7 @@ namespace PluginTwitchChat
         }
 
         // Calculates the number of spaces that has the most similiar width and height.
+        // Used in place of images within the string
         private string CalculateImageString()
         {
             var spaces = " ";
