@@ -237,17 +237,20 @@ namespace PluginTwitchChat
 
         private int FindBreakpoint(string str)
         {
-            // This is very slow but maybe it doesnt matter since words longer than 
-            // the width should be fairly uncommon.
-            // One could use binary search to find the breakpoint faster
+            // Use binary search to find the break point
             int breakPoint;
-            for (breakPoint = 1; breakPoint <= str.Length; breakPoint++)
+            int start = 1;
+            int end = str.Length;
+            while (start < end)
             {
-                var wordLen = measurer.GetWidth(str.Substring(0, breakPoint));
-                if (wordLen >= maxWidth)
-                    return breakPoint - 1;
+                int mid = (end + start) / 2;
+                var wordLen = measurer.GetWidth(str.Substring(0, mid));
+                if (wordLen <= maxWidth)
+                    start = mid + 1;
+                else
+                    end = mid;
             }
-            return -1;
+            return end;
         }
 
         private void CalculateSeperator()
