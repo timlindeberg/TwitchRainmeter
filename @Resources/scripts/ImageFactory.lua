@@ -13,14 +13,14 @@ function Initialize()
 	for i = 0, numEmotes-1 do
 		for nameCount = 1, #names do
 			local n = names[nameCount]
-			local name = "TwitchImage" .. n .. "%%"
+			local name = "Image" .. n .. "%%"
 			table.insert(t, "[" .. insertNumber(name, i) .. "]")
 			insertOptions("Twitch", t, i)
 			insertOptions("Twitch" .. n, t, i)
 			table.insert(t, "Type=" ..insertNumber(name, i))
 			table.insert(t, "")
 		end
-		table.insert(t, "[" .. insertNumber("TwitchImage%%", i) .. "]")
+		table.insert(t, "[" .. insertNumber("Image%%", i) .. "]")
 		insertOptions("Image", t, i)
 		table.insert(t, "\n;------------------------------------------------;\n")
 	end

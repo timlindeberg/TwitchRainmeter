@@ -16,18 +16,30 @@ namespace PluginTwitchChat
         static MessageHandler messageHandler = null;
         static WebBrowserURLLocator urlLocator = null;
 
+        string String;
         string tpe = "";
-        string channelString;
+        string channelString = "";
+        ImageInfo imgInfo;
 
         internal void Reload(API api, ref double maxValue)
         {
             tpe = api.ReadString("Type", "");
-            channelString = api.ReadString("DefaultChannelInputString", "");
-
             switch (tpe)
             {
-                case "AutoConnector": ReloadAutoConnector(api); return;
-                case "Main": ReloadMain(api); return;
+                case "ChannelName":
+                    channelString = api.ReadString("DefaultChannelInputString", "");
+                    break;
+                case "Main":
+                    ReloadMain(api);
+                    break;
+                case "AutoConnector":
+                    ReloadAutoConnector(api);
+                    break;
+                default:
+                    imgInfo = GetImageInfo();
+                    if (imgInfo != null && imgInfo.Type == "Name")
+                        String = "empty";
+                    break;
             }
         }
 
@@ -65,7 +77,7 @@ namespace PluginTwitchChat
             int width = api.ReadInt("Width", 500);
             int height = api.ReadInt("Height", 500);
             int fontSize = api.ReadInt("FontSize", 0);
-            
+
             if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                 return;
 
@@ -87,58 +99,49 @@ namespace PluginTwitchChat
             if (twitch == null)
                 return 0.0;
 
-            if(tpe == "Main")
+            switch (tpe)
             {
-                messageHandler.Update();
-                return 0.0; ;
+                case "Main":
+                    messageHandler.Update();
+                    String = messageHandler.String;
+                    return 0.0;
+                case "ChannelName":
+                    String = twitch.IsInChannel ? twitch.Channel : channelString;
+                    return 0.0;
+                case "IsInChannel":
+                    return twitch.IsInChannel ? 1.0 : 0.0;
             }
 
-            if (tpe == "IsInChannel")
-                return twitch.IsInChannel ? 1.0 : 0.0;
-
-            var imgInfo = GetImageInfo();
             if (imgInfo == null)
                 return 0.0;
 
-            var type = imgInfo.Type;
-            var img = twitch.GetImage(imgInfo.Index);
-            
-            switch (type)
+            switch (imgInfo.Type)
             {
-                case "Width": return messageHandler.ImageWidth;
+                case "Width":  return messageHandler.ImageWidth;
                 case "Height": return messageHandler.ImageHeight;
-                case "X": return img?.X ?? 0.0;
-                case "Y": return img?.Y ?? 0.0;
-                default: return 0.0;
             }
+
+            var img = messageHandler.GetImage(imgInfo.Index);
+            if (img == null)
+            {
+                if(imgInfo.Type == "Name")
+                    String = "empty";
+                return 0.0;
+            }
+
+            switch (imgInfo.Type)
+            {
+                case "X": return img.X;
+                case "Y": return img.Y;
+                case "Name": String = img.Name; break;
+                case "ToolTip": String = img.DisplayName; break;
+            }
+            return 0.0;
         }
 
         internal string GetString()
         {
-            if (tpe == "Main")
-                return messageHandler?.String ?? "";
-
-            if (tpe == "ChannelName")
-            {
-                var str = channelString ?? "";
-                if (twitch == null)
-                    return str;
-
-                return twitch.IsInChannel ? twitch.Channel : str;
-            }
-
-            var imgInfo = GetImageInfo();
-            if (imgInfo == null)
-                return null;
-
-            var variable = imgInfo.Type;
-            var img = twitch?.GetImage(imgInfo.Index);
-            switch (variable)
-            {
-                case "Name": return img?.Name ?? "empty";
-                case "ToolTip": return img?.DisplayName;
-                default: return null;
-            }
+            return String;
         }
 
         internal void ExecuteBang(string args)
@@ -146,13 +149,13 @@ namespace PluginTwitchChat
             if (twitch == null || tpe != "Main")
                 return;
 
-            if(args.StartsWith("SendMessage "))
+            if (args.StartsWith("SendMessage"))
             {
                 twitch.SendMessage(args.Replace("SendMessage ", ""));
                 return;
             }
 
-            if(args.StartsWith("JoinChannel "))
+            if (args.StartsWith("JoinChannel"))
             {
                 string channel = args.Replace("JoinChannel ", "").ToLower();
 
@@ -172,12 +175,11 @@ namespace PluginTwitchChat
             }
         }
 
-        internal static Regex imageInfoRegex = new Regex(@"TwitchImage([^\d]*)(\d*)?");
+        internal static Regex imageInfoRegex = new Regex(@"Image([^\d]*)(\d*)?");
         internal class ImageInfo
         {
             public string Type;
             public int Index;
-            public ImageInfo(string var, int index) { this.Type = var; this.Index = index; }
         }
 
         internal ImageInfo GetImageInfo()
@@ -189,10 +191,10 @@ namespace PluginTwitchChat
 
             var type = match[1].Value;
             var index = -1;
-            if(match.Count >= 3 && match[2].Value != string.Empty) 
+            if (match.Count >= 3 && match[2].Value != string.Empty)
                 index = int.Parse(match[2].Value);
 
-            return new ImageInfo(type, index);
+            return new ImageInfo() { Type = type, Index = index };
         }
 
     }
@@ -233,7 +235,7 @@ namespace PluginTwitchChat
             Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
             return measure.Update();
         }
-        
+
         [DllExport]
         public static IntPtr GetString(IntPtr data)
         {

@@ -86,7 +86,6 @@ namespace PluginTwitchChat
             client.Channels.Join(newChannel);
             Channel = newChannel;
             imgDownloader.DownloadBadges(newChannel);
-            //messageParser.AddResubscription("2 months of clintRem", @"@badges=subscriber/1,turbo/1;color=#FFFF00;display-name=KaedenKing;emotes=108694:12-19;login=kaedenking;mod=0;msg-id=resub;msg-param-months=2;room-id=86268118;subscriber=1;system-msg=KaedenKing\ssubscribed\sfor\s2\smonths\sin\sa\srow!;turbo=1;user-id=41952511;user-type=");
         }
 
         public void LeaveChannel()
@@ -107,18 +106,6 @@ namespace PluginTwitchChat
             client.Disconnect();
             senderClient.Disconnect();
             isConnected = false;
-        }
-
-        public Image GetImage(int index)
-        {
-            lock (messageHandler.Images)
-            {
-                var images = messageHandler.Images;
-                if (index < 0 || index >= images.Count)
-                    return null;
-
-                return images[index];
-            }
         }
 
         public void SendMessage(string msg)
@@ -156,6 +143,7 @@ namespace PluginTwitchChat
         private void LeftChannel(object sender, IrcChannelEventArgs e)
         {
             IsInChannel = false;
+            messageHandler.Reset();
         }
 
         private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)

@@ -31,6 +31,7 @@ namespace PluginTwitchChat
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
             Images = new List<Image>();
+            String = "";
             this.maxWidth = width;
             this.maxHeight = height;
             this.measurer = measurer;
@@ -40,11 +41,7 @@ namespace PluginTwitchChat
 
             Image.ImageString = CalculateImageString();
             var size = measurer.MeasureString(Image.ImageString);
-            if(SeperatorSign != "")
-            {
-                Seperator = new Line();
-                Seperator.Add(CalculateSeperator());
-            }
+            CalculateSeperator();
             ImageWidth = Convert.ToInt32(size.Width);
             ImageHeight = Convert.ToInt32(size.Height);
         }
@@ -77,6 +74,14 @@ namespace PluginTwitchChat
                 currentHeight = measurer.GetHeight(sb.ToString());
             }
             String = sb.ToString();
+        }
+
+        public Image GetImage(int index)
+        {
+            if (index < 0 || index >= Images.Count)
+                return null;
+
+            return Images[index];
         }
 
         public void Reset()
@@ -245,8 +250,12 @@ namespace PluginTwitchChat
             return -1;
         }
 
-        private string CalculateSeperator()
+        private void CalculateSeperator()
         {
+            if (SeperatorSign == "")
+                return;
+
+            Seperator = new Line();
             var c = SeperatorSign[0];
             string s = "";
             double w;
@@ -256,7 +265,7 @@ namespace PluginTwitchChat
                 w = measurer.GetWidth(s);
             } while (w < maxWidth);
 
-            return s.Substring(1);
+            Seperator.Add(s.Substring(1));
         }
 
         // Calculates the number of spaces that has the most similiar width and height.
