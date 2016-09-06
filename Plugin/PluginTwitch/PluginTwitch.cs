@@ -37,8 +37,8 @@ namespace PluginTwitchChat
                     ReloadAutoConnector(api);
                     break;
                 default:
-                    imgInfo = GetInfo(imageInfoRegex);
-                    linkInfo = GetInfo(linkInfoRegex);
+                    imgInfo = GetInfo(ImageInfoRegex);
+                    linkInfo = GetInfo(LinkInfoRegex);
                     if (imgInfo != null && imgInfo.Type == "Name")
                         String = "empty";
                     break;
@@ -83,10 +83,11 @@ namespace PluginTwitchChat
             if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                 return;
 
+            var dim = new Point(width, height);
             var font = new Font(fontFace, fontSize);
             var imgDownloader = new ImageDownloader(imageDir);
             var stringMeasurer = new StringMeasurer(font);
-            messageHandler = new MessageHandler(width, height, stringMeasurer, seperatorSign, imgDownloader);
+            messageHandler = new MessageHandler(dim, stringMeasurer, seperatorSign, imgDownloader);
             twitch = new TwitchClient(user, ouath, messageHandler, imgDownloader);
         }
 
@@ -118,8 +119,8 @@ namespace PluginTwitchChat
             {
                 switch (imgInfo.Type)
                 {
-                    case "Width": return messageHandler.ImageWidth;
-                    case "Height": return messageHandler.ImageHeight;
+                    case "Width": return messageHandler.ImageSize.X;
+                    case "Height": return messageHandler.ImageSize.Y;
                 }
 
                 var img = messageHandler.GetImage(imgInfo.Index);
@@ -199,8 +200,8 @@ namespace PluginTwitchChat
             }
         }
 
-        internal static Regex imageInfoRegex = new Regex(@"Image([^\d]*)(\d*)?");
-        internal static Regex linkInfoRegex = new Regex(@"Link([^\d]*)(\d*)?");
+        internal static readonly Regex ImageInfoRegex = new Regex(@"Image([^\d]*)(\d*)?");
+        internal static readonly Regex LinkInfoRegex = new Regex(@"Link([^\d]*)(\d*)?");
         internal class Info
         {
             public string Type;

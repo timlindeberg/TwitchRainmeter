@@ -22,7 +22,7 @@ namespace PluginTwitchChat
             // the resubscription message, eg: Timsan90 has resubscribed for 6 months!
             var resubWords = Tags["system-msg"].Split(new string[] { "\\s" }, StringSplitOptions.None).Select(s => new Word(s)).ToList();
             var lines = new List<Line>();
-            // Surround the resubscription with the seperato
+
             msgHandler.AddSeperator(lines);
             msgHandler.WordWrap(resubWords, lines);
             if (Message != null)

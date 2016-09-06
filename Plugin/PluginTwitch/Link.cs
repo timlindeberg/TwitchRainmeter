@@ -17,6 +17,7 @@ namespace PluginTwitchChat
         public int Height;
 
         public Link(string url) : this(url, url) { }
+        public Link(string s, int start, int len) : this(s.Substring(start, len)) { }
 
         public Link(string url, string str) : base(str)
         {
