@@ -28,7 +28,7 @@ namespace PluginTwitchChat
         private ImageDownloader imgDownloader;
         private StringMeasurer measurer;
 
-        private static Regex URLRegex = new Regex(@"(https?:\/\/)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
+        private static Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
 
         public MessageHandler(int width, int height, StringMeasurer measurer, String seperatorSign, ImageDownloader imgDownloader)
         {
@@ -64,8 +64,12 @@ namespace PluginTwitchChat
             }
 
             ResizeLineQueue();
+            UpdateData();
+        }
 
-            // Calculate image Y positions and build final string
+        // Calculate image Y positions and build final string
+        public void UpdateData()
+        {
             var sb = new StringBuilder();
             Images = new List<Image>();
             Links = new List<Link>();
@@ -81,7 +85,7 @@ namespace PluginTwitchChat
                     img.Y = Convert.ToInt32(prevHeight);
                     Images.Add(img);
                 }
-                foreach(var link in line.Links)
+                foreach (var link in line.Links)
                 {
                     link.Y = Convert.ToInt32(prevHeight);
                     link.Height = Convert.ToInt32(currentHeight - prevHeight);
@@ -141,7 +145,7 @@ namespace PluginTwitchChat
 
             var prefix = new Word(string.Format("<{0}>:", user));
 
-            List<Word> words = new List<Word>();
+            var words = new List<Word>();
             words.AddRange(badges);
             words.Add(prefix);
             words.AddRange(GetWords(msg, emotes));
@@ -173,19 +177,34 @@ namespace PluginTwitchChat
 
                 if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    words.Add(GetWord(msg, lastWord, pos - lastWord));
+                    AddWord(words, msg, lastWord, pos - lastWord);
                     lastWord = pos + 1;
                 }
             }
             if (lastWord < msg.Length)
-                words.Add(GetWord(msg, lastWord, msg.Length - lastWord));
+                AddWord(words, msg, lastWord, msg.Length - lastWord);
             return words;
         }
 
-        public Word GetWord(string msg, int start, int len)
+        public void AddWord(List<Word> words, string msg, int start, int len)
         {
             var s = msg.Substring(start, len);
-            return URLRegex.IsMatch(s) ? new Link(s) : new Word(s);
+            var match = URLRegex.Match(s);
+            if(!match.Success)
+            {
+                words.Add(new Word(s));
+                return;
+            }
+
+            var index = match.Index;
+            if(index == 0)
+            {
+                words.Add(new Link(s));
+                return;
+            }
+
+            words.Add(new Word(s.Substring(0, index - 1)));
+            words.Add(new Link(s.Substring(index, s.Length - index)));
         }
 
         public List<Line> WordWrap(List<Word> words)
@@ -233,8 +252,9 @@ namespace PluginTwitchChat
                     // or the line is not empty but the word won't fit in itself either.
                     int breakPoint = FindBreakpoint(newString);
                     var start = isEmpty ? 0 : line.Text.Length + 1;
-                    line.Add(new Word(newString.Substring(start, breakPoint - start)));
-                    words[i] = new Word(newString.Substring(breakPoint, newString.Length - breakPoint));
+                    var split = SplitWord(word, start, breakPoint, newString);
+                    line.Add(split.Item1);
+                    words[i] = split.Item2; // revisit the part that didn't get added
                 }
                 lines.Add(line);
                 line = new Line();
@@ -246,6 +266,24 @@ namespace PluginTwitchChat
                 lines.Add(line);
 
             return lines;
+        }
+
+        private Tuple<Word, Word> SplitWord(Word w, int start, int breakPoint, string newString)
+        {
+            var s1 = newString.Substring(start, breakPoint - start);
+            var s2 = newString.Substring(breakPoint, newString.Length - breakPoint);
+            if (w is Link)
+            {
+                var link = w as Link;
+                var url = link.Url;
+                var l1 = new Link(link.Url, s1);
+                l1.X = link.X;
+                l1.Width = maxWidth - link.X;
+                var l2 = new Link(link.Url, s2);
+                // l2 will get positional information later.
+                return new Tuple<Word, Word>(l1, l2);
+            }
+            return new Tuple<Word, Word>(new Word(s1), new Word(s2));
         }
 
         // Resize the line queue to fit the maximum height

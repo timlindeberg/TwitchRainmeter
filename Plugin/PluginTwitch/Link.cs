@@ -10,12 +10,15 @@ namespace PluginTwitchChat
     {
 
         public string Url;
+        public string Str;
         public int X;
         public int Y;
         public int Width;
         public int Height;
 
-        public Link(string url) : base(url)
+        public Link(string url) : this(url, url) { }
+
+        public Link(string url, string str) : base(str)
         {
             this.Url = url;
             this.X = 0;
