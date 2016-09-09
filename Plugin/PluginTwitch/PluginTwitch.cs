@@ -75,7 +75,7 @@ namespace PluginTwitchChat
             string ouath = api.ReadString("Ouath", "");
             string fontFace = api.ReadString("FontFace", "");
             string imageDir = api.ReadString("ImageDir", "");
-            string seperatorSign = api.ReadString("SeperatorSign", "");
+            bool useSeperator = api.ReadInt("UseSeperator", 0) == 1;
             int width = api.ReadInt("Width", 500);
             int height = api.ReadInt("Height", 500);
             int fontSize = api.ReadInt("FontSize", 0);
@@ -83,11 +83,11 @@ namespace PluginTwitchChat
             if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                 return;
 
-            var dim = new Point(width, height);
+            var size = new Size(width, height);
             var font = new Font(fontFace, fontSize);
             var imgDownloader = new ImageDownloader(imageDir);
             var stringMeasurer = new StringMeasurer(font);
-            messageHandler = new MessageHandler(dim, stringMeasurer, seperatorSign, imgDownloader);
+            messageHandler = new MessageHandler(size, stringMeasurer, useSeperator, imgDownloader);
             twitch = new TwitchClient(user, ouath, messageHandler, imgDownloader);
         }
 
@@ -119,8 +119,8 @@ namespace PluginTwitchChat
             {
                 switch (imgInfo.Type)
                 {
-                    case "Width": return messageHandler.ImageSize.X;
-                    case "Height": return messageHandler.ImageSize.Y;
+                    case "Width": return messageHandler.ImageSize.Width;
+                    case "Height": return messageHandler.ImageSize.Height;
                 }
 
                 var img = messageHandler.GetImage(imgInfo.Index);

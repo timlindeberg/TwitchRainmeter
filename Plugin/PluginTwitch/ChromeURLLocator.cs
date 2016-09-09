@@ -105,10 +105,10 @@ namespace PluginTwitchChat
             return null;
         }
 
+        // manually walk through the tree
+        // walking path found using inspect.exe (Windows SDK) for Chrome  52.0.2743.116 m
         private AutomationElement ManualWalk(AutomationElement mainChrome)
         {
-            // manually walk through the tree, searching using TreeScope.Descendants is too slow (even if it's more reliable)
-            // walking path found using inspect.exe (Windows SDK) for Chrome  52.0.2743.116 m (currently the latest stable)
             try
             {
                 var elm1 = mainChrome.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one

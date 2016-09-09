@@ -88,6 +88,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="ChromeURLLocator.cs" />
+    <Compile Include="EmbeddedDLLClass.cs" />
     <Compile Include="EmoteInfo.cs" />
     <Compile Include="ImageDownloader.cs" />
     <Compile Include="Line.cs" />
@@ -95,6 +96,11 @@
     <Compile Include="Message.cs" />
     <Compile Include="Notice.cs" />
     <Compile Include="PrivMessage.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Resubscription.cs" />
     <Compile Include="StringMeasurer.cs" />
     <Compile Include="Tags.cs" />
@@ -164,7 +170,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="IrcDotNet\bin\Debug\IrcDotNet.0.6.0.nupkg" />
     <None Include="IrcDotNet\bin\Debug\IrcDotNet.0.6.0.symbols.nupkg" />
@@ -175,6 +183,10 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="IrcDotNet\Properties\Resources.resx" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

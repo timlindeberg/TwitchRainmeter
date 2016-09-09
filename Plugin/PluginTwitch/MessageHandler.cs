@@ -7,30 +7,31 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 
 namespace PluginTwitchChat
 {
     public class MessageHandler
     {
         public string String { get; set; }
-        public Point ImageSize { get; private set; }
+        public Size ImageSize { get; private set; }
         public List<Image> Images { get; private set; }
         public List<Link> Links { get; private set; }
         public Line Seperator;
 
         private static readonly Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
+        private static readonly string SeperatorSign = "─";
 
-        private string seperatorSign;
         private Queue<Line> lineQueue;
         private Queue<Message> msgQueue;
 
-        private Point max;
+        private Size max;
         private double spaceWidth;
         private ImageDownloader imgDownloader;
         private StringMeasurer measurer;
 
 
-        public MessageHandler(Point maxSize, StringMeasurer measurer, String seperatorSign, ImageDownloader imgDownloader)
+        public MessageHandler(Size maxSize, StringMeasurer measurer, bool useSeperator, ImageDownloader imgDownloader)
         {
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
@@ -41,12 +42,13 @@ namespace PluginTwitchChat
             this.measurer = measurer;
             this.imgDownloader = imgDownloader;
             this.measurer = measurer;
-            this.seperatorSign = seperatorSign;
 
             Image.ImageString = CalculateImageString();
-            var size = measurer.MeasureString(Image.ImageString);
-            CalculateSeperator();
-            ImageSize = new Point { X = Convert.ToInt32(size.Width), Y = Convert.ToInt32(size.Height) };
+            var width = measurer.GetWidth(Image.ImageString);
+            var height = measurer.GetHeight("A");
+            if(useSeperator)
+                CalculateSeperator();
+            ImageSize = new Size { Width = Convert.ToInt32(width), Height = Convert.ToInt32(height) };
             spaceWidth = measurer.GetWidth(" ");
         }
 
@@ -207,7 +209,7 @@ namespace PluginTwitchChat
                     link.Width = Convert.ToInt32(newLen - x);
                 }
 
-                if(newLen <= max.X)
+                if(newLen <= max.Width)
                 {
                     line.Add(word);
                     len = newLen;
@@ -215,7 +217,7 @@ namespace PluginTwitchChat
                 }
 
                 // Word no longer fits in line.
-                if (isEmpty || measurer.GetWidth(word) > max.X)
+                if (isEmpty || measurer.GetWidth(word) > max.Width)
                 {
                     // Either the current line is empty and the word doesn't fit on one line
                     // or the line is not empty but the word won't fit in itself either.
@@ -244,7 +246,7 @@ namespace PluginTwitchChat
             if (word is Link)
             {
                 var link = word as Link;
-                var l1 = new Link(link.Url, s1) { X = link.X, Width = max.X - link.X };
+                var l1 = new Link(link.Url, s1) { X = link.X, Width = max.Width - link.X };
                 var l2 = new Link(link.Url, s2);
                 // l2 will get positional information later.
                 return new Tuple<Word, Word>(l1, l2);
@@ -261,7 +263,7 @@ namespace PluginTwitchChat
             {
                 int mid = (end + start) / 2;
                 var wordLen = measurer.GetWidth(str.Substring(0, mid));
-                if (wordLen <= max.X)
+                if (wordLen <= max.Width)
                     start = mid + 1;
                 else
                     end = mid;
@@ -278,7 +280,7 @@ namespace PluginTwitchChat
                 sb.AppendLine(line.Text);
                 var str = sb.ToString();
                 var height = measurer.GetHeight(str);
-                while (height > max.Y && lineQueue.Count > 1) // Keep at least one line in the queue
+                while (height > max.Height && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
@@ -319,18 +321,14 @@ namespace PluginTwitchChat
 
         private void CalculateSeperator()
         {
-            if (seperatorSign == "")
-                return;
-
             Seperator = new Line();
-            var c = seperatorSign[0];
             string s = "";
             double w;
             do
             {
-                s += c;
+                s += SeperatorSign;
                 w = measurer.GetWidth(s);
-            } while (w < max.X);
+            } while (w < max.Width);
 
             Seperator.Add(s.Substring(1));
         }
@@ -341,8 +339,8 @@ namespace PluginTwitchChat
         {
             var spaces = " ";
             var size = measurer.MeasureString(spaces);
-            double height = size.Height;
-            double width = size.Width;
+            double height = measurer.GetHeight("A");
+            double width = measurer.GetWidth(spaces);
             double previousWidth = height;
             while (width < height)
             {

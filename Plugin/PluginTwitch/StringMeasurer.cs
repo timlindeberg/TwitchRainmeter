@@ -4,51 +4,94 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Diagnostics;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using Qromodyn;
 
 namespace PluginTwitchChat
 {
-    public class StringMeasurer
+
+
+    public class StringMeasurer : IDisposable
     {
-        public Font Font { get; private set;}
-        private Graphics graphics;
-        private StringFormat format;
+        [StructLayout(LayoutKind.Sequential, Size = 64)]
+        public struct Size
+        {
+            public float Width;
+            public float Height;
+
+            public override string ToString()
+            {
+                return string.Format("({0}, {1})", Width, Height);
+            }
+        }
+
+        static StringMeasurer()
+        {
+            EmbeddedDllClass.ExtractEmbeddedDlls("StringMeasurer.dll", Properties.Resources.StringMeasurer);
+        }
+
+        public Font Font { get; private set; }
 
         public StringMeasurer(Font font)
         {
-            Application.SetCompatibleTextRenderingDefault(false);
             Font = font;
-            graphics = Graphics.FromImage(new Bitmap(1, 1));
-            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-            format = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
-            //format.Alignment = StringAlignment.Center;
-            //format.LineAlignment = StringAlignment.Center;
+            var str = new StringBuilder(font.Name);
+            Debug.WriteLine("SystemFontName: " + str);
+            Debug.WriteLine("Name: " + font.Name);
+            Debug.WriteLine("FontFamily: " + font.FontFamily);
+            Debug.WriteLine("Size: " + font.Size);
+            Debug.WriteLine("Bold: " + font.Bold);
+            Debug.WriteLine("Italic: " + font.Italic);
+            InitializeMeasurer(str, (int)font.Size, font.Bold, font.Italic, true);
         }
 
-        public double GetWidth(string s)
+        public float GetWidth(StringBuilder s)
         {
             return MeasureString(s).Width;
         }
 
-        public double GetHeight(string s)
+        public float GetWidth(string s)
+        {
+            return MeasureString(s).Width;
+        }
+
+        public float GetHeight(StringBuilder s)
         {
             return MeasureString(s).Height;
         }
 
-        public SizeF MeasureString(string s)
+        public float GetHeight(string s)
         {
-            if (s == "")
-                return new SizeF(0, 0);
-
-            RectangleF rect = new RectangleF(0, 0, 10000, 10000);
-            format.SetMeasurableCharacterRanges(new [] { new CharacterRange(0, s.Length) });
-
-            Region[] regions = graphics.MeasureCharacterRanges(s, Font, rect, format);
-            rect = regions[0].GetBounds(graphics);
-            return new SizeF((rect.Right + 1.0f),(rect.Bottom + 1.0f));
+            return MeasureString(s).Height;
         }
 
+        public Size MeasureString(StringBuilder s)
+        {
+            var size = new Size();
+            GetTextSize(s, (uint)s.Length, ref size);
+            return size;
+        }
+
+        public Size MeasureString(string s)
+        {
+            return MeasureString(new StringBuilder(s));
+        }
+
+        public void Dispose()
+        {
+            DisposeMeasurer();
+        }
+
+        [DllImport("StringMeasurer.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        static private extern void InitializeMeasurer(StringBuilder fontFamily, int size, bool bold, bool italic, bool accurateText);
+
+        [DllImport("StringMeasurer.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        static private extern void GetTextSize(StringBuilder str, uint strLen, ref Size size);
+
+        [DllImport("StringMeasurer.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        static private extern void DisposeMeasurer();
     }
 
 }
