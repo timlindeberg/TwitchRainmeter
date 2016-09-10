@@ -6,21 +6,22 @@ using System.Threading.Tasks;
 
 namespace PluginTwitchChat
 {
-    public class Image : Word
+    public class Image : Word, Positioned
     {
 
         public static string ImageString = null;
         public string Name;
         public string DisplayName;
-        public int X;
-        public int Y;
+
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
 
         public Image(string name, string displayName) : base(ImageString)
         {
             this.Name = name;
             this.DisplayName = displayName;
-            this.X = 0;
-            this.Y = 0;
         }
 
         public override string ToString()

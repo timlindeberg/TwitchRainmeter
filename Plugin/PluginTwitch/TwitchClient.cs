@@ -83,7 +83,7 @@ namespace PluginTwitchChat
             LeaveChannel();
             client.Channels.Join(newChannel);
             Channel = newChannel;
-            imgDownloader.DownloadBadges(newChannel);
+            imgDownloader.DownloadSubscriberBadge(newChannel);
         }
 
         public void LeaveChannel()

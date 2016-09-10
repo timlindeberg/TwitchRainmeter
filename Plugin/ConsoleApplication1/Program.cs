@@ -11,23 +11,21 @@ namespace ConsoleApplication1
         {
             var f = new Font("Nexa Bold", 14);
             StringMeasurer me = new StringMeasurer(f);
-            Debug.WriteLine(me.MeasureString("lol"));
             Debug.WriteLine(me.MeasureString("lol "));
             Debug.WriteLine(me.MeasureString("     "));
 
-            /*
+            
             var path = @"C:\Users\Tim Lindeberg\Documents\Rainmeter\Skins\Twitch\@Resources\images";
-            ImageDownloader i = new ImageDownloader(path);
-            MessageHandler m = new MessageHandler(new Size(500, 500), me, "-", i);
+            ImageDownloader i = new ImageDownloader(path, 1);
+            MessageHandler m = new MessageHandler(new Size(500, 500), me, true, i);
             TwitchClient c = new TwitchClient("timsan90", "oauth:pm1xf56rfa61ooquew11yoli1sg0cq", m, i);
-            c.JoinChannel("#timsan90");
+            c.JoinChannel("#clintstevens");
             while (true)
             {
                 var msg = Console.ReadLine();
                 c.SendMessage(msg);
                 m.Update();
             }
-            */
         }
 
 

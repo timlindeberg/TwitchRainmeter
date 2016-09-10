@@ -17,6 +17,7 @@ namespace PluginTwitchChat
         static WebBrowserURLLocator urlLocator = null;
 
         string String;
+        static readonly string MissingImage = "_empty";
         string tpe = "";
         string channelString = "";
         Info imgInfo;
@@ -40,7 +41,7 @@ namespace PluginTwitchChat
                     imgInfo = GetInfo(ImageInfoRegex);
                     linkInfo = GetInfo(LinkInfoRegex);
                     if (imgInfo != null && imgInfo.Type == "Name")
-                        String = "empty";
+                        String = MissingImage;
                     break;
             }
         }
@@ -79,13 +80,15 @@ namespace PluginTwitchChat
             int width = api.ReadInt("Width", 500);
             int height = api.ReadInt("Height", 500);
             int fontSize = api.ReadInt("FontSize", 0);
+            int imageQuality = api.ReadInt("ImageQuality", 1);
+            imageQuality = (imageQuality < 1) ? 1 : (imageQuality > 3) ? 3 : imageQuality;
 
             if (user == "" || ouath == "" || fontFace == "" || imageDir == "" || fontSize == 0)
                 return;
 
             var size = new Size(width, height);
             var font = new Font(fontFace, fontSize);
-            var imgDownloader = new ImageDownloader(imageDir);
+            var imgDownloader = new ImageDownloader(imageDir, imageQuality);
             var stringMeasurer = new StringMeasurer(font);
             messageHandler = new MessageHandler(size, stringMeasurer, useSeperator, imgDownloader);
             twitch = new TwitchClient(user, ouath, messageHandler, imgDownloader);
@@ -127,7 +130,7 @@ namespace PluginTwitchChat
                 if (img == null)
                 {
                     if (imgInfo.Type == "Name")
-                        String = "empty";
+                        String = MissingImage;
                     return 0.0;
                 }
 
@@ -147,7 +150,7 @@ namespace PluginTwitchChat
                 if (link == null)
                 {
                     if (linkInfo.Type == "Url")
-                        String = "empty";
+                        String = MissingImage;
                     return 0.0;
                 }
 

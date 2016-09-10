@@ -197,16 +197,11 @@ namespace PluginTwitchChat
                 var newLen = measurer.GetWidth(newString);
 
                 var x = isEmpty ? len : len + spaceWidth;
-                if (word is Image)
+                if(word is Positioned)
                 {
-                    var img = word as Image;
-                    img.X = Convert.ToInt32(x);
-                }
-                else if(word is Link)
-                {
-                    var link = word as Link;
-                    link.X = Convert.ToInt32(x);
-                    link.Width = Convert.ToInt32(newLen - x);
+                    var pos = word as Positioned;
+                    pos.X = Convert.ToInt32(x);
+                    pos.Width = Convert.ToInt32(newLen - x);
                 }
 
                 if(newLen <= max.Width)
@@ -243,15 +238,14 @@ namespace PluginTwitchChat
             int breakPoint = FindBreakpoint(newString);
             var s1 = newString.Substring(start, breakPoint - start);
             var s2 = newString.Substring(breakPoint, newString.Length - breakPoint);
-            if (word is Link)
-            {
-                var link = word as Link;
-                var l1 = new Link(link.Url, s1) { X = link.X, Width = max.Width - link.X };
-                var l2 = new Link(link.Url, s2);
-                // l2 will get positional information later.
-                return new Tuple<Word, Word>(l1, l2);
-            }
-            return new Tuple<Word, Word>(new Word(s1), new Word(s2));
+            if(!(word is Link))
+                return new Tuple<Word, Word>(new Word(s1), new Word(s2));
+
+            var link = word as Link;
+            var l1 = new Link(link.Url, s1) { X = link.X, Width = max.Width - link.X };
+            var l2 = new Link(link.Url, s2);
+            // l2 will get positional information later.
+            return new Tuple<Word, Word>(l1, l2);
         }
 
         private int FindBreakpoint(string str)

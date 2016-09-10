@@ -6,15 +6,16 @@ using System.Threading.Tasks;
 
 namespace PluginTwitchChat
 {
-    public class Link : Word
+    public class Link : Word , Positioned
     {
 
         public string Url;
         public string Str;
-        public int X;
-        public int Y;
-        public int Width;
-        public int Height;
+
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
 
         public Link(string url) : this(url, url) { }
         public Link(string s, int start, int len) : this(s.Substring(start, len)) { }
@@ -22,10 +23,6 @@ namespace PluginTwitchChat
         public Link(string url, string str) : base(str)
         {
             this.Url = url;
-            this.X = 0;
-            this.Y = 0;
-            this.Width = 0;
-            this.Height = 0;
         }
 
         public override string ToString()

@@ -7,7 +7,6 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using Qromodyn;
 
 namespace PluginTwitchChat
 {
@@ -29,7 +28,7 @@ namespace PluginTwitchChat
 
         static StringMeasurer()
         {
-            EmbeddedDllClass.ExtractEmbeddedDlls("StringMeasurer.dll", Properties.Resources.StringMeasurer);
+            Qromodyn.EmbeddedDllClass.ExtractEmbeddedDlls("StringMeasurer.dll", Properties.Resources.StringMeasurer);
         }
 
         public Font Font { get; private set; }
@@ -38,12 +37,6 @@ namespace PluginTwitchChat
         {
             Font = font;
             var str = new StringBuilder(font.Name);
-            Debug.WriteLine("SystemFontName: " + str);
-            Debug.WriteLine("Name: " + font.Name);
-            Debug.WriteLine("FontFamily: " + font.FontFamily);
-            Debug.WriteLine("Size: " + font.Size);
-            Debug.WriteLine("Bold: " + font.Bold);
-            Debug.WriteLine("Italic: " + font.Italic);
             InitializeMeasurer(str, (int)font.Size, font.Bold, font.Italic, true);
         }
 

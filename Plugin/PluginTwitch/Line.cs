@@ -10,6 +10,7 @@ namespace PluginTwitchChat
     {
         public List<Image> Images;
         public List<Link> Links;
+        public List<Positioned> Positioned;
         public string Text { get ; private set; }
         public bool IsEmpty { get { return Text == string.Empty; } }
         public Line()

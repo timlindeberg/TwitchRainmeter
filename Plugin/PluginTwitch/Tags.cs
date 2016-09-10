@@ -37,11 +37,7 @@ namespace PluginTwitchChat
             {
                 foreach (var badge in tagMap["badges"].Split(','))
                 {
-                    // Ignore cheer badges for now since they're not officialy supported
-                    if (badge.StartsWith("bits"))
-                        continue;
-
-                    var fileName = badge.Replace("/1", "");
+                    var fileName = badge.Replace("/", "");
                     var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
                     badges.Add(new Image(fileName, displayName));
                 }
