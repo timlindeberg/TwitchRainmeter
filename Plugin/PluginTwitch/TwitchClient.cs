@@ -135,6 +135,7 @@ namespace PluginTwitchChat
             e.Channel.UserNoticeReceived -= UserNoticeMessageRecieved;
             e.Channel.UserNoticeReceived += UserNoticeMessageRecieved;
             IsInChannel = true;
+            messageHandler.AddMessage(new PrivMessage("cheer100", "badges=staff/1,bits/1000;bits=100;color=;display-name=TWITCH_UserNaME;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=1337;subscriber=0;turbo=1;user-id=1337;user-type=staff"));
         }
 
         private void LeftChannel(object sender, IrcChannelEventArgs e)
@@ -153,7 +154,7 @@ namespace PluginTwitchChat
             if (e.Source.Name == "twitchnotify")
                 messageHandler.AddMessage(new Notice(e.Text));
             else
-                messageHandler.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
+                messageHandler.AddMessage(new PrivMessage(e.Text, e.Tags));
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)

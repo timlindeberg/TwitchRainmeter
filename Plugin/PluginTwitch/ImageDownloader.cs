@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.IO;
 using System.Diagnostics;
+using System.Drawing;
 using System.Text.RegularExpressions;
 using Rainmeter;
 
@@ -23,6 +24,7 @@ namespace PluginTwitchChat
         private readonly string GlobalBadgeUrl   = @"https://static-cdn.jtvnw.net/chat-badges/{0}.png";
         private readonly string ChannelBadgesUrl = @"https://api.twitch.tv/kraken/chat/{0}/badges";
         private readonly string EmoteUrl         = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
+        private readonly string CheerUrl      = @"http://static-cdn.jtvnw.net/bits/light/animated/{0}/{1}";
 
         // This is needed since naming is inconsistent. For instance, the
         // globalmod image is called "globalmod.png" but the tag is called global_mod.
@@ -49,11 +51,32 @@ namespace PluginTwitchChat
         
         public void DownloadEmote(string id)
         {
-            string quality = GetEmoteQuality();
+            string quality = EmoteQuality();
             var url = string.Format(EmoteUrl, id, quality);
             DownloadImage(url, id, replaceExistingFile: false);
         }
 
+        public void DownloadCheer(int amount)
+        {
+            var color = CheerColor(amount);
+            var quality = CheerQuality();
+            var url = string.Format(CheerUrl, color, quality);
+            byte[] imageBytes = webClient.DownloadData(url);
+
+            HttpWebRequest httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
+            HttpWebResponse httpWebReponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            Stream stream = httpWebReponse.GetResponseStream();
+
+
+            MemoryStream memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            memoryStream.Position = 0;
+            stream = memoryStream;
+
+            var img = System.Drawing.Image.FromStream(stream);
+            var file = string.Format("{0}\\{1}.png", ImagePath, "cheer" + amount);
+            img.Save(file, System.Drawing.Imaging.ImageFormat.Gif);
+        }
 
         private Dictionary<string, string> GetGlobalBadgeUrls()
         {
@@ -63,7 +86,6 @@ namespace PluginTwitchChat
                 return urls;
 
             dynamic parsed = JsonParser.Parse(json);
-            string url;
             foreach (var kv1 in parsed["badge_sets"])
             {
                 var name = kv1.Key;
@@ -75,8 +97,8 @@ namespace PluginTwitchChat
                 {
                     var version = kv2.Key;
                     var v2 = kv2.Value;
-                    var quality = GetBadgeQuality();
-                    url = v2[quality];
+                    var quality = BadgeQuality();
+                    string url = v2[quality];
                     urls[name + version] = url;
                 }
             }
@@ -93,7 +115,7 @@ namespace PluginTwitchChat
             dynamic parsed = JsonParser.Parse(json);
             string url = parsed["subscriber"]["image"];
             int lastSlash = url.LastIndexOf('/');
-            url = url.Substring(0, lastSlash) + "/" + GetSubscriberQuality();
+            url = url.Substring(0, lastSlash) + "/" + SubscriberQuality();
             return url;
         }
 
@@ -148,7 +170,20 @@ namespace PluginTwitchChat
                 beingDownloaded.Remove(name);
         }
 
-        private string GetBadgeQuality()
+        private string CheerColor(int amount)
+        {
+            if (amount >= 10000)
+                return "red";
+            if (amount >= 5000)
+                return "blue";
+            if (amount >= 1000)
+                return "green";
+            if (amount >= 100)
+                return "purple";
+            return "gray";
+        }
+
+        private string BadgeQuality()
         {
             switch (imageQuality)
             {
@@ -159,7 +194,7 @@ namespace PluginTwitchChat
             }
         }
 
-        private string GetSubscriberQuality()
+        private string SubscriberQuality()
         {
             switch (imageQuality)
             {
@@ -170,9 +205,20 @@ namespace PluginTwitchChat
             }
         }
 
-        private string GetEmoteQuality()
+        private string EmoteQuality()
         {
             return imageQuality + ".0";
+        }
+
+        private string CheerQuality()
+        {
+            switch (imageQuality)
+            {
+                case 1: return "1";
+                case 2: return "2";
+                case 3: return "4"; // wtf twitch
+                default: return "";
+            }
         }
     }
 }

@@ -110,25 +110,28 @@ namespace PluginTwitchChat
                 msgQueue.Enqueue(msg);
         }
 
-        public List<Word> GetWords(string user, string msg, Tags tags)
+        public List<Word> GetWords(string msg, Tags tags)
         {
-            var badges = tags.GetBadges();
-            var emotes = tags.GetEmotes();
+            var badges = tags.Badges;
+            var emotes = tags.Emotes;
 
+            var user = tags["display-name"];
             var prefix = new Word(string.Format("<{0}>:", user));
 
             var words = new List<Word>();
             words.AddRange(badges);
             words.Add(prefix);
-            words.AddRange(GetWords(msg, emotes));
+            words.AddRange(GetWords(msg, emotes, tags.Bits));
             return words;
         }
 
-        public List<Word> GetWords(string msg, List<EmoteInfo> emotes)
+        public List<Word> GetWords(string msg, List<EmoteInfo> emotes = null, int bits = -1)
         {
             var emoteIndex = 0;
             var lastWord = 0;
             List<Word> words = new List<Word>();
+            if (bits != -1)
+                imgDownloader.DownloadCheer(bits);
             for (int pos = 0; pos < msg.Length; pos++)
             {
                 if (emotes != null && emoteIndex < emotes.Count)
@@ -149,16 +152,16 @@ namespace PluginTwitchChat
 
                 if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    AddWord(words, msg, lastWord, pos - lastWord);
+                    AddWord(words, msg, bits, lastWord, pos - lastWord);
                     lastWord = pos + 1;
                 }
             }
             if (lastWord < msg.Length)
-                AddWord(words, msg, lastWord, msg.Length - lastWord);
+                AddWord(words, msg, bits, lastWord, msg.Length - lastWord);
             return words;
         }
 
-        public void AddWord(List<Word> words, string msg, int start, int len)
+        public void AddWord(List<Word> words, string msg, int bits, int start, int len)
         {
             var s = msg.Substring(start, len);
             var match = URLRegex.Match(s);

@@ -29,44 +29,55 @@ namespace PluginTwitchChat
             get { return tagMap[s]; }
         }
 
-        public List<Image> GetBadges()
+        public int Bits
         {
-            var badges = new List<Image>();
-
-            if (tagMap.ContainsKey("badges"))
-            {
-                foreach (var badge in tagMap["badges"].Split(','))
-                {
-                    var fileName = badge.Replace("/", "");
-                    var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
-                    badges.Add(new Image(fileName, displayName));
-                }
-            }
-            return badges;
+            get { return tagMap.ContainsKey("bits") ? int.Parse(tagMap["bits"]) : -1; }
         }
 
-        public List<EmoteInfo> GetEmotes()
+        public List<Image> Badges
         {
-            var emotes = new List<EmoteInfo>();
-
-            if (!tagMap.ContainsKey("emotes"))
-                return emotes;
-
-            foreach (var emote in tagMap["emotes"].Split('/'))
+            get
             {
-                var s = emote.Split(':');
-                var id = s[0];
+                var badges = new List<Image>();
 
-                foreach (var index in s[1].Split(','))
+                if (tagMap.ContainsKey("badges"))
                 {
-                    var i = index.Split('-');
-                    var start = int.Parse(i[0]);
-                    var end = int.Parse(i[1]);
-                    emotes.Add(new EmoteInfo(id, start, end));
+                    foreach (var badge in tagMap["badges"].Split(','))
+                    {
+                        var fileName = badge.Replace("/", "");
+                        var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
+                        badges.Add(new Image(fileName, displayName));
+                    }
                 }
+                return badges;
             }
-            emotes.Sort((e1, e2) => e1.Start - e2.Start);
-            return emotes;
+        }
+
+        public List<EmoteInfo> Emotes
+        {
+            get
+            {
+                var emotes = new List<EmoteInfo>();
+
+                if (!tagMap.ContainsKey("emotes"))
+                    return emotes;
+
+                foreach (var emote in tagMap["emotes"].Split('/'))
+                {
+                    var s = emote.Split(':');
+                    var id = s[0];
+
+                    foreach (var index in s[1].Split(','))
+                    {
+                        var i = index.Split('-');
+                        var start = int.Parse(i[0]);
+                        var end = int.Parse(i[1]);
+                        emotes.Add(new EmoteInfo(id, start, end));
+                    }
+                }
+                emotes.Sort((e1, e2) => e1.Start - e2.Start);
+                return emotes;
+            }
         }
     }
 }

@@ -28,8 +28,7 @@ namespace PluginTwitchChat
             if (Message != null)
             {
                 // Message can be null in resub messages
-                var user = Tags["display-name"];
-                var msgWords = msgHandler.GetWords(user, Message, Tags);
+                var msgWords = msgHandler.GetWords(Message, Tags);
                 msgHandler.WordWrap(msgWords, lines);
             }
             msgHandler.AddSeperator(lines);
