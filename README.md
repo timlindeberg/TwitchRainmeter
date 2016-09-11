@@ -16,20 +16,16 @@ Please let me know of any issues or missing features you would like added!
 * Messages can be posted directly from the Rainmeter skin.
 * Highlights your own name in chat.
 * Hover over images to see their names.
+* Clickable links.
+* Animated cheers.
+
 
 **Missing features**:
 * Does not support BetterTTV emotes.
 * Automatic connection only works in the Chrome browser.
 * Some notifications are missing such as the message recieved when you type too fast 
 when a channel is in slow mode.
-* Resubscriptions will not be shown in the chat.
-* Other such messages might be missing.
-
-**Known issues**:
-* Emotes will displayed at the wrong location when Unicode symbols of different
-sizes are posted in chat.
-* I've seen the application crash when weird characters (see https://twitter.com/glitchr_)
-are posted in chat. Hopefully this issue is resolved.
+* User color.
 
 ## Installation
 
@@ -37,7 +33,7 @@ are posted in chat. Hopefully this issue is resolved.
 2. Install the font you want to use for the skin by placing them in the Windows Font folder.
 3. Generate an Ouath code at http://www.twitchapps.com/tmi/.
 4. Enter your username and the Ouath code in the @Resources\Variables.inc file.
-5. Customize the settings in the Variables.inc file to your liking and make sure to specify the font you installed.
+5. Customize the settings in the Variables.inc file to your liking and make sure to specify the font you installed as well as the location of your Chrome browser.
 6. You're all set!
 
 ## Usage

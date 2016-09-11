@@ -64,7 +64,7 @@ namespace PluginTwitchChat
                 }
                 if (!registeredEvent.Wait(waitTime))
                 {
-                    messageHandler.String = "Could not register to Twitch. Did provide a user name and Ouath?";
+                    messageHandler.String = "Could not connect to Twitch. Did provide a user name and Ouath?";
                     return;
                 }
                 isConnected = true;
@@ -135,7 +135,6 @@ namespace PluginTwitchChat
             e.Channel.UserNoticeReceived -= UserNoticeMessageRecieved;
             e.Channel.UserNoticeReceived += UserNoticeMessageRecieved;
             IsInChannel = true;
-            messageHandler.AddMessage(new PrivMessage("cheer11000 cheer5500 cheer1200 cheer200 cheer5", "badges=staff/1,bits/1000;bits=200;color=;display-name=TWITCH_UserNaME;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=1337;subscriber=0;turbo=1;user-id=1337;user-type=staff"));
         }
 
         private void LeftChannel(object sender, IrcChannelEventArgs e)

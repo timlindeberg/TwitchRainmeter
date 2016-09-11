@@ -173,9 +173,6 @@
     <Content Include="IrcDotNet\bin\Debug\net45\IrcDotNet.pdb" />
     <Content Include="IrcDotNet\bin\Debug\net45\IrcDotNet.xml" />
     <Content Include="IrcDotNet\IrcDotNet.xproj.user" />
-    <Content Include="net40\IrcDotNet.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
@@ -187,7 +184,6 @@
     <None Include="IrcDotNet\IrcDotNet.xproj" />
     <None Include="IrcDotNet\project.json" />
     <None Include="IrcDotNet\project.lock.json" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="IrcDotNet\Properties\Resources.resx" />

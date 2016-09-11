@@ -28,7 +28,6 @@ struct Size {
 	float Height;
 };
 
-
 HRESULT GetDWritePropertiesFromGDIProperties(
 	IDWriteFactory* factory, const WCHAR* gdiFamilyName, const bool gdiBold, const bool gdiItalic,
 	DWRITE_FONT_WEIGHT& dwriteFontWeight, DWRITE_FONT_STYLE& dwriteFontStyle,

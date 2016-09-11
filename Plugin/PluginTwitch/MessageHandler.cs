@@ -167,22 +167,22 @@ namespace PluginTwitchChat
 
                 if (Char.IsWhiteSpace(msg[pos]))
                 {
-                    AddWord(words, msg, bits, lastWord, pos - lastWord);
+                    AddWord(words, msg, ref bits, lastWord, pos - lastWord);
                     lastWord = pos + 1;
                 }
             }
             if (lastWord < msg.Length)
-                AddWord(words, msg, bits, lastWord, msg.Length - lastWord);
+                AddWord(words, msg, ref bits, lastWord, msg.Length - lastWord);
             return words;
         }
 
-        public void AddWord(List<Word> words, string msg, int bits, int start, int len)
+        public void AddWord(List<Word> words, string msg, ref int bits, int start, int len)
         {
             var s = msg.Substring(start, len);
             var urlMatch = URLRegex.Match(s);
             if (!urlMatch.Success)
             {
-                AddCheerOrWord(words, s, bits);
+                AddCheerOrWord(words, s, ref bits);
                 return;
             }
 
@@ -194,18 +194,12 @@ namespace PluginTwitchChat
             }
 
             var s2 = s.Substring(0, index - 1);
-            AddCheerOrWord(words, s2, bits);
+            AddCheerOrWord(words, s2, ref bits);
             words.Add(new Link(s, index, s.Length - index));
         }
 
-        public void AddCheerOrWord(List<Word> words, string s, int bits)
+        public void AddCheerOrWord(List<Word> words, string s, ref int bits)
         {
-            if (bits == -1)
-            {
-                words.Add(new Word(s));
-                return;
-            }
-
             var cheerMatch = CheerRegex.Match(s);
             if (!cheerMatch.Success)
             {
@@ -214,6 +208,13 @@ namespace PluginTwitchChat
             }
 
             var bitsInCheer = int.Parse(cheerMatch.Groups[1].Value);
+            if(bits < bitsInCheer)
+            {
+                words.Add(new Word(s));
+                return;
+            }
+
+            bits -= bitsInCheer;
             var roundedBits = RoundBits(bitsInCheer);
             
             var gifPath = imgDownloader.DownloadCheer(roundedBits);
@@ -295,7 +296,6 @@ namespace PluginTwitchChat
 
         private int FindBreakpoint(string str)
         {
-            int breakPoint;
             int start = 1;
             int end = str.Length;
             while (start < end)

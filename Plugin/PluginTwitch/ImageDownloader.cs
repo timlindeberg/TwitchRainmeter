@@ -14,18 +14,19 @@ using Rainmeter;
 namespace PluginTwitchChat
 {
 
-
     public class ImageDownloader
     {
         public string ImagePath { get; private set; }
+
+        private readonly string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
+        private readonly string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
+        private readonly string EmoteUrl = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
+        private readonly string CheerUrl = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
+        private readonly string ChannelUrl = @"https://api.twitch.tv/kraken/channels/{0}";
+
         private ISet<string> beingDownloaded;
         private WebClient webClient;
         private int imageQuality;
-        private readonly string GlobalBadgesUrl  = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
-        private readonly string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
-        private readonly string EmoteUrl         = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
-        private readonly string CheerUrl         = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
-        private readonly string ChannelUrl       = @"https://api.twitch.tv/kraken/channels/{0}";
 
         public ImageDownloader(string imagePath, int imageQuality)
         {
