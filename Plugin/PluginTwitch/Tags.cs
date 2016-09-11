@@ -34,19 +34,18 @@ namespace PluginTwitchChat
             get { return tagMap.ContainsKey("bits") ? int.Parse(tagMap["bits"]) : -1; }
         }
 
-        public List<Image> Badges
+        public List<string> Badges
         {
             get
             {
-                var badges = new List<Image>();
+                var badges = new List<string>();
 
                 if (tagMap.ContainsKey("badges"))
                 {
                     foreach (var badge in tagMap["badges"].Split(','))
                     {
                         var fileName = badge.Replace("/", "");
-                        var displayName = char.ToUpper(fileName[0]) + fileName.Substring(1);
-                        badges.Add(new Image(fileName, displayName));
+                        badges.Add(fileName);
                     }
                 }
                 return badges;

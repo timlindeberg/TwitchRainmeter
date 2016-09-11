@@ -6,13 +6,16 @@
 function Initialize()
 	local numImages = SELF:GetNumberOption("NumImages")
 	local numLinks = SELF:GetNumberOption("NumLinks")
+	local numGifs = SELF:GetNumberOption("NumGifs")
 	local file = io.open(SKIN:MakePathAbsolute(SELF:GetOption("IncFile")), "w")
 	
 	local t = {}
 	
 	local imageVars = {'Name', 'X', 'Y', 'ToolTip'}
-	local linkVars = {'Url', 'X', 'Y', 'Width', 'Height'}
+	local gifVars = {'Name', 'X', 'Y', 'ToolTip'}
+	local linkVars = {'Name', 'Url', 'X', 'Y', 'Width', 'Height'}
 	insert(t, "Image", imageVars, numImages)
+	insert(t, "Gif", gifVars, numGifs)
 	insert(t, "Link", linkVars, numLinks)
 
 	file:write(table.concat(t, "\n"))

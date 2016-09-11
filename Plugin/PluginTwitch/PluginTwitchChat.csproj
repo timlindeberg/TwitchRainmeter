@@ -90,6 +90,7 @@
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnimatedImage.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="ChromeURLLocator.cs" />
     <Compile Include="EmbeddedDLLClass.cs" />

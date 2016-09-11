@@ -11,9 +11,9 @@ namespace ConsoleApplication1
         {
             var f = new Font("Nexa Bold", 14);
             StringMeasurer me = new StringMeasurer(f);
-            Debug.WriteLine(me.MeasureString("lol "));
-            Debug.WriteLine(me.MeasureString("     "));
-
+            Debug.WriteLine(me.MeasureString("                              \n   d "));
+            Debug.WriteLine(me.MeasureString("  "));
+            /*
             
             var path = @"C:\Users\Tim Lindeberg\Documents\Rainmeter\Skins\Twitch\@Resources\images";
             ImageDownloader i = new ImageDownloader(path, 1);
@@ -25,7 +25,7 @@ namespace ConsoleApplication1
                 var msg = Console.ReadLine();
                 c.SendMessage(msg);
                 m.Update();
-            }
+            }*/
         }
 
 

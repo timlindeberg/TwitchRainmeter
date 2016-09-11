@@ -21,6 +21,7 @@ namespace PluginTwitchChat
         string tpe = "";
         string channelString = "";
         Info imgInfo;
+        Info gifInfo;
         Info linkInfo;
 
         internal void Reload(API api, ref double maxValue)
@@ -39,9 +40,15 @@ namespace PluginTwitchChat
                     break;
                 default:
                     imgInfo = GetInfo(ImageInfoRegex);
+                    gifInfo = GetInfo(GifInfoRegex);
                     linkInfo = GetInfo(LinkInfoRegex);
+
                     if (imgInfo != null && imgInfo.Type == "Name")
                         String = MissingImage;
+
+                    if (gifInfo != null && gifInfo.Type == "Name")
+                        String = MissingImage;
+
                     break;
             }
         }
@@ -105,6 +112,15 @@ namespace PluginTwitchChat
             if (twitch == null)
                 return 0.0;
 
+            if (gifInfo != null)
+                return UpdateGif();
+
+            if (imgInfo != null)
+                return UpdateImage();
+
+            if (linkInfo != null)
+                return UpdateLink();
+
             switch (tpe)
             {
                 case "Main":
@@ -118,51 +134,73 @@ namespace PluginTwitchChat
                     return twitch.IsInChannel ? 1.0 : 0.0;
             }
 
-            if (imgInfo != null)
+            return 0.0;
+        }
+
+        internal double UpdateImage()
+        {
+            switch (imgInfo.Type)
             {
-                switch (imgInfo.Type)
-                {
-                    case "Width": return messageHandler.ImageSize.Width;
-                    case "Height": return messageHandler.ImageSize.Height;
-                }
+                case "Width": return messageHandler.ImageSize.Width;
+                case "Height": return messageHandler.ImageSize.Height;
+            }
 
-                var img = messageHandler.GetImage(imgInfo.Index);
-                if (img == null)
-                {
-                    if (imgInfo.Type == "Name")
-                        String = MissingImage;
-                    return 0.0;
-                }
-
-                switch (imgInfo.Type)
-                {
-                    case "X": return img.X;
-                    case "Y": return img.Y;
-                    case "Name": String = img.Name; break;
-                    case "ToolTip": String = img.DisplayName; break;
-                }
+            var img = messageHandler.GetImage(imgInfo.Index);
+            if (img == null)
+            {
+                if (imgInfo.Type == "Name")
+                    String = MissingImage;
                 return 0.0;
             }
 
-            if(linkInfo != null)
+            switch (imgInfo.Type)
             {
-                var link = messageHandler.GetLink(linkInfo.Index);
-                if (link == null)
-                {
-                    if (linkInfo.Type == "Url")
-                        String = MissingImage;
-                    return 0.0;
-                }
+                case "X": return img.X;
+                case "Y": return img.Y;
+                case "Name": String = img.Name; break;
+                case "ToolTip": String = img.DisplayName; break;
+            }
+            return 0.0;
+        }
 
-                switch (linkInfo.Type)
-                {
-                    case "X": return link.X;
-                    case "Y": return link.Y;
-                    case "Width": return link.Width;
-                    case "Height": return link.Height;
-                    case "Url": String = link.Url; break;
-                }
+        internal double UpdateGif()
+        {
+            var gif = messageHandler.GetGif(gifInfo.Index);
+            if (gif == null)
+            {
+                if (gifInfo.Type == "Name")
+                    String = MissingImage;
                 return 0.0;
+            }
+
+            switch (gifInfo.Type)
+            {
+                case "X": return gif.X;
+                case "Y": return gif.Y;
+                case "Name": String = gif.Name; break;
+                case "ToolTip": String = gif.DisplayName; break;
+            }
+            return 0.0;
+        }
+
+        internal double UpdateLink()
+        {
+            var link = messageHandler.GetLink(linkInfo.Index);
+            if (link == null)
+            {
+                if (linkInfo.Type == "Url" || linkInfo.Type == "Name")
+                    String = "";
+                return 0.0;
+            }
+
+            switch (linkInfo.Type)
+            {
+                case "X": return link.X;
+                case "Y": return link.Y;
+                case "Width": return link.Width;
+                case "Height": return link.Height;
+                case "Url": String = link.Url; break;
+                case "Name": String = link; break;
             }
             return 0.0;
         }
@@ -204,6 +242,7 @@ namespace PluginTwitchChat
         }
 
         internal static readonly Regex ImageInfoRegex = new Regex(@"Image([^\d]*)(\d*)?");
+        internal static readonly Regex GifInfoRegex = new Regex(@"Gif([^\d]*)(\d*)?");
         internal static readonly Regex LinkInfoRegex = new Regex(@"Link([^\d]*)(\d*)?");
         internal class Info
         {

@@ -16,10 +16,13 @@ namespace PluginTwitchChat
         public string String { get; set; }
         public Size ImageSize { get; private set; }
         public List<Image> Images { get; private set; }
+        public List<AnimatedImage> Gifs { get; private set; }
         public List<Link> Links { get; private set; }
         public Line Seperator;
+        public string ImageString;
 
         private static readonly Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
+        private static readonly Regex CheerRegex = new Regex(@"(?:^|\s)cheer(\d+)(?:\s|$)");
         private static readonly string SeperatorSign = "─";
 
         private Queue<Line> lineQueue;
@@ -36,6 +39,7 @@ namespace PluginTwitchChat
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
             Images = new List<Image>();
+            Gifs = new List<AnimatedImage>();
             Links = new List<Link>();
             String = "";
             this.max = maxSize;
@@ -43,8 +47,8 @@ namespace PluginTwitchChat
             this.imgDownloader = imgDownloader;
             this.measurer = measurer;
 
-            Image.ImageString = CalculateImageString();
-            var width = measurer.GetWidth(Image.ImageString);
+            ImageString = CalculateImageString();
+            var width = measurer.GetWidth(ImageString);
             var height = measurer.GetHeight("A");
             if(useSeperator)
                 CalculateSeperator();
@@ -73,6 +77,14 @@ namespace PluginTwitchChat
                 return null;
 
             return Images[index];
+        }
+
+        public AnimatedImage GetGif(int index)
+        {
+            if (index < 0 || index >= Gifs.Count)
+                return null;
+
+            return Gifs[index];
         }
 
         public Link GetLink(int index)
@@ -112,7 +124,12 @@ namespace PluginTwitchChat
 
         public List<Word> GetWords(string msg, Tags tags)
         {
-            var badges = tags.Badges;
+            var badges = new List<Image>();
+            foreach(var badge in tags.Badges)
+            {
+                var displayName = char.ToUpper(badge[0]) + badge.Substring(1);
+                badges.Add(new Image(badge, displayName, ImageString));
+            }
             var emotes = tags.Emotes;
 
             var user = tags["display-name"];
@@ -130,8 +147,6 @@ namespace PluginTwitchChat
             var emoteIndex = 0;
             var lastWord = 0;
             List<Word> words = new List<Word>();
-            if (bits != -1)
-                imgDownloader.DownloadCheer(bits);
             for (int pos = 0; pos < msg.Length; pos++)
             {
                 if (emotes != null && emoteIndex < emotes.Count)
@@ -141,7 +156,7 @@ namespace PluginTwitchChat
                     {
                         imgDownloader.DownloadEmote(emote.ID);
                         var displayName = msg.Substring(emote.Start, emote.Length + 1);
-                        var img = new Image(emote.ID, displayName);
+                        var img = new Image(emote.ID, displayName, ImageString);
                         words.Add(img);
                         pos = emote.End + 1;
                         lastWord = pos + 1;
@@ -164,22 +179,49 @@ namespace PluginTwitchChat
         public void AddWord(List<Word> words, string msg, int bits, int start, int len)
         {
             var s = msg.Substring(start, len);
-            var match = URLRegex.Match(s);
-            if(!match.Success)
+            var urlMatch = URLRegex.Match(s);
+            if (!urlMatch.Success)
             {
-                words.Add(new Word(s));
+                AddCheerOrWord(words, s, bits);
                 return;
             }
 
-            var index = match.Index;
+            var index = urlMatch.Index;
             if(index == 0)
             {
                 words.Add(new Link(s));
                 return;
             }
 
-            words.Add(new Word(s, 0, index - 1));
+            var s2 = s.Substring(0, index - 1);
+            AddCheerOrWord(words, s2, bits);
             words.Add(new Link(s, index, s.Length - index));
+        }
+
+        public void AddCheerOrWord(List<Word> words, string s, int bits)
+        {
+            if (bits == -1)
+            {
+                words.Add(new Word(s));
+                return;
+            }
+
+            var cheerMatch = CheerRegex.Match(s);
+            if (!cheerMatch.Success)
+            {
+                words.Add(new Word(s));
+                return;
+            }
+
+            var bitsInCheer = int.Parse(cheerMatch.Groups[1].Value);
+            var roundedBits = RoundBits(bitsInCheer);
+            
+            var gifPath = imgDownloader.DownloadCheer(roundedBits);
+            var name = "cheer" + roundedBits;
+            var displayName = "Cheer" + bitsInCheer;
+            var imageString = ImageString + " " + bitsInCheer;
+            var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath);
+            words.Add(animatedImg);
         }
 
         public List<Line> WordWrap(List<Word> words)
@@ -190,7 +232,7 @@ namespace PluginTwitchChat
         public List<Line> WordWrap(List<Word> words, List<Line> lines)
         {
             var len = 0.0;
-            var line = new Line();
+            var line = new Line(measurer);
             for (int i = 0; i < words.Count; i++)
             {
                 bool isEmpty = line.Text == string.Empty;
@@ -225,7 +267,7 @@ namespace PluginTwitchChat
                     words[i] = split.Item2; // revisit the part that didn't get added
                 }
                 lines.Add(line);
-                line = new Line();
+                line = new Line(measurer);
                 len = 0.0;
                 i--; // revisit this word
             }
@@ -275,59 +317,68 @@ namespace PluginTwitchChat
             foreach (var line in lineQueue.ToList())
             {
                 sb.AppendLine(line.Text);
-                var str = sb.ToString();
-                var height = measurer.GetHeight(str);
+                var height = measurer.GetHeight(sb);
                 while (height > max.Height && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
-                    str = sb.ToString();
-                    height = measurer.GetHeight(str);
+                    height = measurer.GetHeight(sb);
                 }
             }
         }
-
 
         // Calculate Y positions and build final string
         private void UpdateData()
         {
             var sb = new StringBuilder();
-            Images = new List<Image>();
-            Links = new List<Link>();
+
+            var positioned = new List<Positioned>();
             var currentHeight = 0.0;
             foreach (var line in lineQueue)
             {
                 var prevHeight = currentHeight;
                 sb.AppendLine(line.Text);
-                currentHeight = measurer.GetHeight(sb.ToString());
+                currentHeight = measurer.GetHeight(sb);
 
-                foreach (var img in line.Images)
+                foreach(var pos in line.Positioned)
                 {
-                    img.Y = Convert.ToInt32(prevHeight);
-                    Images.Add(img);
-                }
-                foreach (var link in line.Links)
-                {
-                    link.Y = Convert.ToInt32(prevHeight);
-                    link.Height = Convert.ToInt32(currentHeight - prevHeight);
-                    Links.Add(link);
+                    pos.Y = Convert.ToInt32(prevHeight);
+                    pos.Height = Convert.ToInt32(currentHeight - prevHeight);
+                    positioned.Add(pos);
                 }
             }
             String = sb.ToString();
+            UpdatePositionedVars(positioned);
+        }
+
+        private void UpdatePositionedVars(List<Positioned> positioned)
+        {
+            Images = new List<Image>();
+            Gifs = new List<AnimatedImage>();
+            Links = new List<Link>();
+            foreach (var pos in positioned)
+            {
+                if (pos is AnimatedImage)
+                    Gifs.Add(pos as AnimatedImage);
+                else if (pos is Image)
+                    Images.Add(pos as Image);
+                else if (pos is Link)
+                    Links.Add(pos as Link);
+            }
         }
 
         private void CalculateSeperator()
         {
-            Seperator = new Line();
-            string s = "";
+            Seperator = new Line(measurer);
+            var sb = new StringBuilder("");
             double w;
             do
             {
-                s += SeperatorSign;
-                w = measurer.GetWidth(s);
+                sb.Append(SeperatorSign);
+                w = measurer.GetWidth(sb);
             } while (w < max.Width);
-
-            Seperator.Add(s.Substring(1));
+            sb.Remove(0, 1);
+            Seperator.Add(sb.ToString());
         }
 
         // Calculates the number of spaces that has the most similiar width and height.
@@ -346,6 +397,19 @@ namespace PluginTwitchChat
                 width = measurer.GetWidth(spaces);
             }
             return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
+        }
+
+        private int RoundBits(int amount)
+        {
+            if (amount >= 10000)
+                return 10000;
+            if (amount >= 5000)
+                return 5000;
+            if (amount >= 1000)
+                return 1000;
+            if (amount >= 100)
+                return 100;
+            return 1;
         }
     }
 }

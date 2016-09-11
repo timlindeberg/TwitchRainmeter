@@ -9,8 +9,8 @@ namespace PluginTwitchChat
     public class Image : Word, Positioned
     {
 
-        public static string ImageString = null;
-        public string Name;
+        protected string _name;
+        public virtual string Name { get { return _name; } private set { _name = value; } }
         public string DisplayName;
 
         public float X { get; set; }
@@ -18,15 +18,10 @@ namespace PluginTwitchChat
         public float Width { get; set; }
         public float Height { get; set; }
 
-        public Image(string name, string displayName) : base(ImageString)
+        public Image(string name, string displayName, string imageString) : base(imageString)
         {
-            this.Name = name;
+            this._name = name;
             this.DisplayName = displayName;
-        }
-
-        public override string ToString()
-        {
-            return string.Format("Image({0})", DisplayName);
         }
     }
 }
