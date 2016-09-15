@@ -3,9 +3,14 @@
 Twitch Chat for Rainmeter is a plugin for Rainmeter used to view the Twitch chat
 right on your desktop with full emote and messaging support!
 
-![Twitch for Rainmeter in action](http://i.imgur.com/dk7S4Pm.png)
+GIF (sped up):
 
-![Twitch for Rainmeter in action](http://i.imgur.com/jsdgrxB.png)
+![Twitch for Rainmeter in action](https://thumbs.gfycat.com/MetallicNeatBackswimmer-size_restricted.gif)
+
+![Twitch for Rainmeter in action](http://i.imgur.com/ZoSM5jq.png)
+
+![Twitch for Rainmeter in action](http://i.imgur.com/6VKLr5a.png)
+
 
 Please let me know of any issues or missing features you would like added!
 
@@ -38,7 +43,7 @@ when a channel is in slow mode.
 
 ## Usage
 
-To join a channel enter the name of the channel (www.twitch.tv/<channel>) in the channel input bar.
+To join a channel enter the name of the channel (www.twitch.tv/channel) in the channel input bar.
 Alternatively you can used the automatic connection feature which is enabled by default (currently only works with Chrome).
 Just navigate to the Twitch channel you want to view and the Skin will automatically connect to the channel.
 Manually entering a channel will override the automatic connection feature until the skin is reset.
