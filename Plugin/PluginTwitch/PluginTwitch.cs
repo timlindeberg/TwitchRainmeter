@@ -14,7 +14,7 @@ namespace PluginTwitchChat
     {
         static readonly string MissingImage = "_empty";
 
-        static TwitchClient twitch = null;
+        static TwitchClient twitchClient = null;
         static MessageHandler messageHandler = null;
         static WebBrowserURLLocator urlLocator = null;
         static StringMeasurer stringMeasurer = null;
@@ -29,10 +29,6 @@ namespace PluginTwitchChat
             tpe = api.ReadString("Type", "");
             switch (tpe)
             {
-                case "ChannelName":
-                    channelString = api.ReadString("DefaultChannelInputString", "");
-                    StringValue = channelString;
-                    break;
                 case "Main":
                     StringValue = "";
                     ReloadMain(api);
@@ -43,38 +39,6 @@ namespace PluginTwitchChat
             }
 
             update = GetUpdateFunction();
-        }
-
-        internal Func<double> GetUpdateFunction()
-        {
-            switch (tpe)
-            {
-                case "ChannelName":
-                    return () =>
-                    {
-                        StringValue = twitch.IsInChannel ? twitch.Channel : channelString;
-                        return 0.0;
-                    };
-                case "Main":
-                    return () =>
-                    {
-                        messageHandler.Update();
-                        StringValue = messageHandler.String;
-                        return 0.0;
-                    };
-                case "IsInChannel": return () => { return twitch.IsInChannel ? 1.0 : 0.0; };
-            }
-
-            var info = GetInfo(Info.Image);
-            if (info != null) return GetImageUpdateFunction(info);
-
-            info = GetInfo(Info.Gif);
-            if (info != null) return GetGifUpdateFunction(info);
-
-            info = GetInfo(Info.Link);
-            if (info != null) return GetLinkUpdateFunction(info);
-
-            return () => { return 0.0; };
         }
 
         internal void ReloadAutoConnector(API api)
@@ -95,19 +59,20 @@ namespace PluginTwitchChat
             }
             var channel = urlLocator.TwitchChannel;
             if (channel != null)
-                twitch.JoinChannel(channel);
+                twitchClient.JoinChannel(channel);
         }
 
         internal void ReloadMain(API api)
         {
-            if (twitch != null)
+            if (twitchClient != null)
                 return;
 
             string user = api.ReadString("Username", "").ToLower();
             string ouath = api.ReadString("Ouath", "");
             string fontFace = api.ReadString("FontFace", "");
             string imageDir = api.ReadString("ImageDir", "");
-            bool useSeperator = api.ReadInt("UseSeperator", 0) == 1;
+            bool useSeperator = api.ReadInt("UseSeperator", 1) == 1;
+            bool useBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
             int width = api.ReadInt("Width", 500);
             int height = api.ReadInt("Height", 500);
             int fontSize = api.ReadInt("FontSize", 16);
@@ -115,7 +80,7 @@ namespace PluginTwitchChat
 
             if(user == "")
             {
-                StringValue = "Username is missing in settings files Variables.inc.";
+                StringValue = "User name is missing in settings files Variables.inc.";
                 return;
             }
 
@@ -135,8 +100,10 @@ namespace PluginTwitchChat
             var font = new Font(fontFace, fontSize);
             var imgDownloader = new ImageDownloader(imageDir, imageQuality);
             stringMeasurer = new StringMeasurer(font);
-            messageHandler = new MessageHandler(size, stringMeasurer, useSeperator, imgDownloader);
-            twitch = new TwitchClient(user, ouath, messageHandler, imgDownloader);
+
+            var settings = new MessageHandlerSettings { UseBetterTTVEmotes = useBetterTTV, MaxSize = size, UseSeperator = useSeperator };
+            messageHandler = new MessageHandler(settings, stringMeasurer, imgDownloader);
+            twitchClient = new TwitchClient(user, ouath, messageHandler, imgDownloader);
         }
 
         internal int Clamp(int v, int min, int max)
@@ -146,20 +113,53 @@ namespace PluginTwitchChat
 
         internal void Cleanup()
         {
-            twitch?.Disconnect();
-            twitch = null;
+            twitchClient?.Disconnect();
+            twitchClient = null;
             stringMeasurer?.Dispose();
         }
 
         internal double Update()
         {
-            if (twitch == null)
+            if (twitchClient == null)
                 return 0.0;
 
             return update();
         }
 
-        internal Func<double> GetImageUpdateFunction(Info info)
+        internal Func<double> GetUpdateFunction()
+        {
+            switch (tpe)
+            {
+                case "ChannelName":
+                    StringValue = "";
+                    return () =>
+                    {
+                        StringValue = twitchClient.IsInChannel ? twitchClient.Channel : "";
+                        return 0.0;
+                    };
+                case "Main":
+                    return () =>
+                    {
+                        messageHandler.Update();
+                        StringValue = messageHandler.String;
+                        return 0.0;
+                    };
+                case "IsInChannel": return () => { return twitchClient.IsInChannel ? 1.0 : 0.0; };
+            }
+
+            var info = GetInfo(MeasureInfo.Image);
+            if (info != null) return GetImageUpdateFunction(info);
+
+            info = GetInfo(MeasureInfo.Gif);
+            if (info != null) return GetGifUpdateFunction(info);
+
+            info = GetInfo(MeasureInfo.Link);
+            if (info != null) return GetLinkUpdateFunction(info);
+
+            return () => { return 0.0; };
+        }
+
+        internal Func<double> GetImageUpdateFunction(MeasureInfo info)
         {
             switch (info.Type)
             {
@@ -188,7 +188,7 @@ namespace PluginTwitchChat
             }
         }
 
-        internal Func<double> GetGifUpdateFunction(Info info)
+        internal Func<double> GetGifUpdateFunction(MeasureInfo info)
         {
             var i = info.Index;
             switch (info.Type)
@@ -211,7 +211,7 @@ namespace PluginTwitchChat
             }
         }
 
-        internal Func<double> GetLinkUpdateFunction(Info info)
+        internal Func<double> GetLinkUpdateFunction(MeasureInfo info)
         {
             var i = info.Index;
             switch (info.Type)
@@ -245,12 +245,12 @@ namespace PluginTwitchChat
 
         internal void ExecuteBang(string args)
         {
-            if (twitch == null || tpe != "Main")
+            if (twitchClient == null || tpe != "Main")
                 return;
 
             if (args.StartsWith("SendMessage"))
             {
-                twitch.SendMessage(args.Replace("SendMessage ", ""));
+                twitchClient.SendMessage(args.Replace("SendMessage ", ""));
                 return;
             }
 
@@ -260,7 +260,7 @@ namespace PluginTwitchChat
 
                 if (channel == string.Empty)
                 {
-                    twitch.LeaveChannel();
+                    twitchClient.LeaveChannel();
                     return;
                 }
 
@@ -270,22 +270,23 @@ namespace PluginTwitchChat
                 if (!channel.StartsWith("#"))
                     channel = "#" + channel;
 
-                twitch.JoinChannel(channel);
+                twitchClient.JoinChannel(channel);
             }
         }
 
 
-        internal class Info
+        internal class MeasureInfo
         {
-            public static readonly Regex Image = new Regex(@"Image([^\d]*)(\d*)?");
-            public static readonly Regex Gif = new Regex(@"Gif([^\d]*)(\d*)?");
-            public static readonly Regex Link = new Regex(@"Link([^\d]*)(\d*)?");
+            private static string regex = @"([^\d]*)(\d*)?";
+            public static readonly Regex Image = new Regex("Image" + regex);
+            public static readonly Regex Gif = new Regex("Gif" + regex);
+            public static readonly Regex Link = new Regex("Link" + regex);
 
             public string Type;
             public int Index;
         }
 
-        internal Info GetInfo(Regex regex)
+        internal MeasureInfo GetInfo(Regex regex)
         {
             var match = regex.Match(tpe).Groups;
 
@@ -297,7 +298,7 @@ namespace PluginTwitchChat
             if (match.Count >= 3 && match[2].Value != string.Empty)
                 index = int.Parse(match[2].Value);
 
-            return new Info() { Type = type, Index = index };
+            return new MeasureInfo() { Type = type, Index = index };
         }
 
     }

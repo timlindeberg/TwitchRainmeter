@@ -9,13 +9,25 @@ namespace PluginTwitchChat
     public class Line
     {
         public List<Positioned> Positioned;
-        public string Text { get ; private set; }
+        private string _Text;
+        public string Text
+        {
+            get
+            {
+                if (_Text.Length != sb.Length)
+                    _Text = sb.ToString();
+                return _Text;
+            }
+        }
         public bool IsEmpty { get { return Text == string.Empty; } }
 
         private StringMeasurer measurer;
+        private StringBuilder sb;
+
         public Line(StringMeasurer measurer)
         {
-            Text = string.Empty;
+            _Text = string.Empty;
+            sb = new StringBuilder();
             this.measurer = measurer;
             Positioned = new List<Positioned>();
         }
@@ -27,11 +39,11 @@ namespace PluginTwitchChat
 
         public void Add(Word w)
         {
-            if(w is Positioned)
+            if (w is Positioned)
                 Positioned.Add(w as Positioned);
 
             string t = w is Link ? CalculateSpaceString(w) : w;
-            Text += (Text == string.Empty) ? t : ' ' + t;
+            sb.Append((sb.Length == 0) ? t : ' ' + t);
         }
 
         public override string ToString()

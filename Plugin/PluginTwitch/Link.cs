@@ -10,7 +10,6 @@ namespace PluginTwitchChat
     {
 
         public string Url;
-        public string Str;
 
         public float X { get; set; }
         public float Y { get; set; }

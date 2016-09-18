@@ -11,6 +11,13 @@ using System.Globalization;
 
 namespace PluginTwitchChat
 {
+    public class MessageHandlerSettings
+    {
+        public bool UseBetterTTVEmotes;
+        public bool UseSeperator;
+        public Size MaxSize;
+    }
+
     public class MessageHandler
     {
         public string String { get; set; }
@@ -28,13 +35,12 @@ namespace PluginTwitchChat
         private Queue<Line> lineQueue;
         private Queue<Message> msgQueue;
 
-        private Size max;
         private double spaceWidth;
         private ImageDownloader imgDownloader;
         private StringMeasurer measurer;
+        private MessageHandlerSettings settings;
 
-
-        public MessageHandler(Size maxSize, StringMeasurer measurer, bool useSeperator, ImageDownloader imgDownloader)
+        public MessageHandler(MessageHandlerSettings settings, StringMeasurer measurer, ImageDownloader imgDownloader)
         {
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
@@ -42,15 +48,15 @@ namespace PluginTwitchChat
             Gifs = new List<AnimatedImage>();
             Links = new List<Link>();
             String = "";
-            this.max = maxSize;
             this.measurer = measurer;
             this.imgDownloader = imgDownloader;
             this.measurer = measurer;
+            this.settings = settings;
 
             ImageString = CalculateImageString();
             var width = measurer.GetWidth(ImageString);
             var height = measurer.GetHeight("A");
-            if(useSeperator)
+            if (settings.UseSeperator)
                 CalculateSeperator();
             ImageSize = new Size { Width = Convert.ToInt32(width), Height = Convert.ToInt32(height) };
             spaceWidth = measurer.GetWidth(" ");
@@ -125,9 +131,9 @@ namespace PluginTwitchChat
         public List<Word> GetWords(string msg, Tags tags)
         {
             var badges = new List<Image>();
-            foreach(var badge in tags.Badges)
+            foreach (var badge in tags.Badges)
             {
-                var displayName = char.ToUpper(badge[0]) + badge.Substring(1);
+                var displayName = char.ToUpper(badge[0]) + badge.Substring(1, badge.Length - 2);
                 badges.Add(new Image(badge, displayName, ImageString));
             }
             var emotes = tags.Emotes;
@@ -182,47 +188,68 @@ namespace PluginTwitchChat
             var urlMatch = URLRegex.Match(s);
             if (!urlMatch.Success)
             {
-                AddCheerOrWord(words, s, ref bits);
+                AddWord(words, s, ref bits);
                 return;
             }
 
             var index = urlMatch.Index;
-            if(index == 0)
+            if (index == 0)
             {
                 words.Add(new Link(s));
                 return;
             }
 
             var s2 = s.Substring(0, index - 1);
-            AddCheerOrWord(words, s2, ref bits);
+            AddWord(words, s2, ref bits);
             words.Add(new Link(s, index, s.Length - index));
         }
 
-        public void AddCheerOrWord(List<Word> words, string s, ref int bits)
+        public void AddWord(List<Word> words, string word, ref int bits)
         {
-            var cheerMatch = CheerRegex.Match(s);
-            if (!cheerMatch.Success)
+            var cheerMatch = CheerRegex.Match(word);
+            if (cheerMatch.Success)
             {
-                words.Add(new Word(s));
+                var bitsInCheer = int.Parse(cheerMatch.Groups[1].Value);
+                if (bits < bitsInCheer)
+                {
+                    words.Add(new Word(word));
+                    return;
+                }
+
+                bits -= bitsInCheer;
+                var roundedBits = RoundBits(bitsInCheer);
+
+                var gifPath = imgDownloader.DownloadCheer(roundedBits);
+                var name = "cheer" + roundedBits;
+                var displayName = "Cheer" + bitsInCheer;
+                var imageString = ImageString + " " + bitsInCheer;
+                var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath, repeat: false);
+                words.Add(animatedImg);
                 return;
             }
-
-            var bitsInCheer = int.Parse(cheerMatch.Groups[1].Value);
-            if(bits < bitsInCheer)
+            if (settings.UseBetterTTVEmotes)
             {
-                words.Add(new Word(s));
-                return;
+                var betterTTVEmote = imgDownloader.GetBetterTTVEmote(word);
+                if (betterTTVEmote != null)
+                {
+                    var img = GetBetterTTVImage(betterTTVEmote);
+                    words.Add(img);
+                    return;
+                }
             }
 
-            bits -= bitsInCheer;
-            var roundedBits = RoundBits(bitsInCheer);
-            
-            var gifPath = imgDownloader.DownloadCheer(roundedBits);
-            var name = "cheer" + roundedBits;
-            var displayName = "Cheer" + bitsInCheer;
-            var imageString = ImageString + " " + bitsInCheer;
-            var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath);
-            words.Add(animatedImg);
+            words.Add(new Word(word));
+        }
+
+        private Image GetBetterTTVImage(ImageDownloader.BetterTTVEmote betterTTVEmote)
+        {
+            var name = betterTTVEmote.name;
+            switch (betterTTVEmote.fileEnding)
+            {
+                case ImageDownloader.FileEnding.PNG: return new Image(name, name, ImageString);
+                case ImageDownloader.FileEnding.GIF: return new AnimatedImage(name, name, ImageString, betterTTVEmote.url, repeat: true);
+                default:                             return null;
+            }
         }
 
         public List<Line> WordWrap(List<Word> words)
@@ -243,14 +270,14 @@ namespace PluginTwitchChat
                 var newLen = measurer.GetWidth(newString);
 
                 var x = isEmpty ? len : len + spaceWidth;
-                if(word is Positioned)
+                if (word is Positioned)
                 {
                     var pos = word as Positioned;
                     pos.X = Convert.ToInt32(x);
                     pos.Width = Convert.ToInt32(newLen - x);
                 }
 
-                if(newLen <= max.Width)
+                if (newLen <= settings.MaxSize.Width)
                 {
                     line.Add(word);
                     len = newLen;
@@ -258,7 +285,7 @@ namespace PluginTwitchChat
                 }
 
                 // Word no longer fits in line.
-                if (isEmpty || measurer.GetWidth(word) > max.Width)
+                if (isEmpty || measurer.GetWidth(word) > settings.MaxSize.Width)
                 {
                     // Either the current line is empty and the word doesn't fit on one line
                     // or the line is not empty but the word won't fit in itself either.
@@ -273,7 +300,7 @@ namespace PluginTwitchChat
                 i--; // revisit this word
             }
 
-            if(!line.IsEmpty)
+            if (!line.IsEmpty)
                 lines.Add(line);
 
             return lines;
@@ -284,13 +311,12 @@ namespace PluginTwitchChat
             int breakPoint = FindBreakpoint(newString);
             var s1 = newString.Substring(start, breakPoint - start);
             var s2 = newString.Substring(breakPoint, newString.Length - breakPoint);
-            if(!(word is Link))
+            if (!(word is Link))
                 return new Tuple<Word, Word>(new Word(s1), new Word(s2));
 
             var link = word as Link;
-            var l1 = new Link(link.Url, s1) { X = link.X, Width = max.Width - link.X };
-            var l2 = new Link(link.Url, s2);
-            // l2 will get positional information later.
+            var l1 = new Link(link.Url, s1) { X = link.X, Width = settings.MaxSize.Width - link.X };
+            var l2 = new Link(link.Url, s2); // l2 will get positional information later.
             return new Tuple<Word, Word>(l1, l2);
         }
 
@@ -302,7 +328,7 @@ namespace PluginTwitchChat
             {
                 int mid = (end + start) / 2;
                 var wordLen = measurer.GetWidth(str.Substring(0, mid));
-                if (wordLen <= max.Width)
+                if (wordLen <= settings.MaxSize.Width)
                     start = mid + 1;
                 else
                     end = mid;
@@ -318,7 +344,7 @@ namespace PluginTwitchChat
             {
                 sb.AppendLine(line.Text);
                 var height = measurer.GetHeight(sb);
-                while (height > max.Height && lineQueue.Count > 1) // Keep at least one line in the queue
+                while (height > settings.MaxSize.Height && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
@@ -340,7 +366,7 @@ namespace PluginTwitchChat
                 sb.AppendLine(line.Text);
                 currentHeight = measurer.GetHeight(sb);
 
-                foreach(var pos in line.Positioned)
+                foreach (var pos in line.Positioned)
                 {
                     pos.Y = Convert.ToInt32(prevHeight);
                     pos.Height = Convert.ToInt32(currentHeight - prevHeight);
@@ -376,7 +402,7 @@ namespace PluginTwitchChat
             {
                 sb.Append(SeperatorSign);
                 w = measurer.GetWidth(sb);
-            } while (w < max.Width);
+            } while (w < settings.MaxSize.Width);
             sb.Remove(0, 1);
             Seperator.Add(sb.ToString());
         }

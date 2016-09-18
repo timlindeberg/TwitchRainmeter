@@ -16,46 +16,96 @@ namespace PluginTwitchChat
 
     public class ImageDownloader
     {
-        public string ImagePath { get; private set; }
 
         private readonly string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
         private readonly string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
         private readonly string EmoteUrl = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
         private readonly string CheerUrl = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
         private readonly string ChannelUrl = @"https://api.twitch.tv/kraken/channels/{0}";
+        private readonly string BetterTTVGlobalUrl = @"https://api.betterttv.net/2/emotes";
+        private readonly string BetterTTVChannelUrl = @"https://api.betterttv.net/2/channels/{0}";
+        private readonly string BetterTTVEmoteUrl = @"https://cdn.betterttv.net/emote/{0}/{1}";
 
         private ISet<string> beingDownloaded;
         private WebClient webClient;
         private int imageQuality;
+        private string imagePath;
+        private Dictionary<string, BetterTTVEmote> betterTTVGlobalEmotes;
+        private Dictionary<string, BetterTTVEmote> betterTTVChannelEmotes;
+
+        public class BetterTTVEmote
+        {
+            public string id;
+            public string name;
+            public FileEnding fileEnding;
+            public string url;
+        }
+
+        public enum FileEnding { PNG, GIF } 
 
         public ImageDownloader(string imagePath, int imageQuality)
         {
             this.imageQuality = imageQuality;
             webClient = new WebClient();
             beingDownloaded = new HashSet<string>();
-            ImagePath = imagePath;
+            this.imagePath = imagePath;
 
             DownloadGlobalBadges();
+            betterTTVGlobalEmotes = GetBetterTTWEmotes(BetterTTVGlobalUrl);
+            betterTTVChannelEmotes = new Dictionary<string, BetterTTVEmote>();
         }
 
-        public string DownloadSubscriberBadge(string channel)
+        public void SetChannel(string channel)
         {
+            channel = channel.Replace("#", "");
+            var betterTTVurl = string.Format(BetterTTVChannelUrl, channel);
+            betterTTVChannelEmotes = GetBetterTTWEmotes(betterTTVurl);
+
             var channelID = GetChannelID(channel);
+            if (channelID == string.Empty)
+                return;
+
             var url = string.Format(ChannelBadgesUrl, channelID);
             var badgeUrls = GetBadgeUrls(url);
             var name = "subscriber1";
 
             if (!badgeUrls.ContainsKey(name))
-                return string.Empty;
+                return;
 
-            return DownloadImage(badgeUrls[name], name, replaceExistingFile: true);
+            DownloadImage(badgeUrls[name], name, replaceExistingFile: true);
         }
         
+        public BetterTTVEmote GetBetterTTVEmote(string word)
+        {
+            BetterTTVEmote emote = null;
+            foreach (var map in new[] { betterTTVGlobalEmotes, betterTTVChannelEmotes })
+            {
+                if (map.ContainsKey(word))
+                {
+                    emote = map[word];
+                    break;
+                }
+            }
+
+            if (emote == null)
+                return null;
+
+            emote.url = DownloadBetterTTVEmote(emote);
+            return emote;
+        }
+
         public string DownloadEmote(string id)
         {
             string quality = EmoteQuality(imageQuality);
             var url = string.Format(EmoteUrl, id, quality);
             return DownloadImage(url, id, replaceExistingFile: false);
+        }
+
+        private string DownloadBetterTTVEmote(BetterTTVEmote emote)
+        {
+            string quality = BetterTTVEmoteQuality(imageQuality);
+            var url = string.Format(BetterTTVEmoteUrl, emote.id, quality);
+            return DownloadImage(url, emote.name, replaceExistingFile: false, fileEnding: emote.fileEnding);
         }
 
         public string DownloadCheer(int roundedBits)
@@ -65,7 +115,7 @@ namespace PluginTwitchChat
             var name = "cheer" + roundedBits;
 
             var url = string.Format(CheerUrl, color, quality);
-            return DownloadImage(url, name, replaceExistingFile: false, fileEnding: "gif");
+            return DownloadImage(url, name, replaceExistingFile: false, fileEnding: FileEnding.GIF);
         }
 
         private Dictionary<string, string> GetBadgeUrls(string badgeUrl)
@@ -76,33 +126,45 @@ namespace PluginTwitchChat
                 return urls;
 
             dynamic parsed = JsonParser.Parse(json);
-            foreach (var kv1 in parsed["badge_sets"])
+            try
             {
-                var name = kv1.Key;
-                var v1 = kv1.Value;
-                var versions = v1["versions"];
-                foreach (var kv2 in versions)
+                foreach (var kv1 in parsed["badge_sets"])
                 {
-                    var version = kv2.Key;
-                    var v2 = kv2.Value;
-                    string url = v2[BadgeQuality(imageQuality)];
-                    if (url == "null")
-                        url = v2[BadgeQuality(1)];
-                    urls[name + version] = url;
+                    var name = kv1.Key;
+                    var v1 = kv1.Value;
+                    var versions = v1["versions"];
+                    foreach (var kv2 in versions)
+                    {
+                        var version = kv2.Key;
+                        var v2 = kv2.Value;
+                        string url = v2[BadgeQuality(imageQuality)];
+                        if (url == "null")
+                            url = v2[BadgeQuality(1)];
+                        urls[name + version] = url;
+                    }
                 }
             }
+            catch
+            {
+                API.Log(API.LogType.Warning, "Could not parse badges Json from Twitch: " + json);
+            }
+
             return urls;
         }
 
         private string GetChannelID(string channel)
         {
-            var url = string.Format(ChannelUrl, channel.Replace("#", ""));
+            var url = string.Format(ChannelUrl, channel);
             string json = DownloadString(url);
-            API.Log(API.LogType.Notice, json);
             if (json == string.Empty)
                 return string.Empty;
 
             dynamic parsed = JsonParser.Parse(json);
+            if(!parsed.ContainsKey("_id"))
+            {
+                API.Log(API.LogType.Warning, "Could not parse badges Json from Twitch: " + json);
+                return "";
+            }
             return parsed["_id"];
         }
 
@@ -118,6 +180,40 @@ namespace PluginTwitchChat
             }
         }
 
+        private Dictionary<string, BetterTTVEmote> GetBetterTTWEmotes(string url)
+        {
+            Dictionary<string, BetterTTVEmote> emotes = new Dictionary<string, BetterTTVEmote>();
+            string json = DownloadString(url);
+
+            if (json == "")
+                return emotes;
+
+            dynamic parsed = JsonParser.Parse(json);
+            try
+            {
+                foreach (var e in parsed["emotes"])
+                {
+                    var code = e["code"];
+                    emotes[code] = new BetterTTVEmote
+                    {
+                        id = e["id"],
+                        name = code,
+                        fileEnding = ParseEnum<FileEnding>(e["imageType"])
+                    };
+                }
+            }
+            catch
+            {
+                API.Log(API.LogType.Warning, "Could not parse emote Json from BetterTTW: " + json);
+            }
+            return emotes;
+        }
+
+        private T ParseEnum<T>(string value)
+        {
+            return (T)Enum.Parse(typeof(T), value, ignoreCase:true);
+        }
+
         private string DownloadString(string url)
         {
             try
@@ -126,18 +222,19 @@ namespace PluginTwitchChat
             }
             catch (WebException)
             {
-                // Channel doesn't exist
+                API.Log(API.LogType.Warning, "Could not download string from " + url);
                 return string.Empty;
             }
         }
 
-        private string GetFilePath(string name, string fileEnding = "png", int frame = -1)
+        private string GetFilePath(string name, FileEnding fileEnding = FileEnding.PNG, int frame = -1)
         {
-            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", ImagePath, name, imageQuality, fileEnding) :
-                                 string.Format("{0}\\{1}-{2}_{3}.{4}", ImagePath, name, frame, imageQuality, fileEnding);
+            var f = Enum.GetName(typeof(FileEnding), fileEnding).ToLower();
+            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", imagePath, name, imageQuality, f) :
+                                 string.Format("{0}\\{1}-{2}_{3}.{4}", imagePath, name, frame, imageQuality, f);
         }
 
-        private string DownloadImage(string url, string fileName, bool replaceExistingFile, string fileEnding = "png")
+        private string DownloadImage(string url, string fileName, bool replaceExistingFile, FileEnding fileEnding = FileEnding.PNG)
         {
             var file = GetFilePath(fileName, fileEnding);
 
@@ -153,12 +250,12 @@ namespace PluginTwitchChat
                 try
                 {
                     webClient.DownloadFile(url, file);
-                    if (fileEnding == "gif")
+                    if (fileEnding == FileEnding.GIF)
                         SplitGifFrames(file, fileName);
                 }
                 catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
                 {
-                    // an error occured when fetching the file, do nothing
+                    API.Log(API.LogType.Warning, "Could not download image from " + url);
                 }
             }
 
@@ -168,15 +265,17 @@ namespace PluginTwitchChat
             return file;
         }
 
-        private void SplitGifFrames(string gifPath, string name)
+        private void SplitGifFrames(string path, string name)
         {
-            using (var gif = System.Drawing.Image.FromFile(gifPath))
+            using (var gif = System.Drawing.Image.FromFile(path))
             {
                 int frameCount = gif.GetFrameCount(FrameDimension.Time);
                 for (int frame = 0; ;)
                 {
                     var file = GetFilePath(name, frame: frame);
-                    new Bitmap(gif).Save(file);
+                    using (var bmp = new Bitmap(gif))
+                        bmp.Save(file);
+
                     if (++frame >= frameCount) break;
                     gif.SelectActiveFrame(FrameDimension.Time, frame);
                 }
@@ -211,6 +310,11 @@ namespace PluginTwitchChat
         private string EmoteQuality(int imageQuality)
         {
             return imageQuality + ".0";
+        }
+
+        private string BetterTTVEmoteQuality(int imageQuality)
+        {
+            return imageQuality + "x";
         }
 
         private string CheerQuality(int imageQuality)

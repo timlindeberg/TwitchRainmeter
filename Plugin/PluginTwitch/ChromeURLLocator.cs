@@ -13,65 +13,70 @@ namespace PluginTwitchChat
     public class ChromeURLLocator : WebBrowserURLLocator
     {
         private bool ManualWalkFailed = false;
-        private AutomationElement _URLBar;
-        private AutomationElement URLBar
-        {
-            get
-            {
-                if (_URLBar == null)
-                    _URLBar = GetURLBar();
-                return _URLBar;
-            }
-        }
+        private List<AutomationElement> urlBars = new List<AutomationElement>();
+        private HashSet<int> checkedProcesses = new HashSet<int>();
 
         public override string GetActiveUrl()
         {
-            if (!ChromeIsRunning())
+            UpdateURLBars();
+            API.Log(API.LogType.Notice, "urlbars: " + urlBars.Count);
+            foreach (var urlbar in urlBars)
             {
-                // Reset the URL bar if Chrome was closed down
-                _URLBar = null;
-                return null;
+                // If the URLBar has focus the user might be typing and the URL is probably not valid
+                if ((bool)urlbar.GetCurrentPropertyValue(AutomationElement.HasKeyboardFocusProperty))
+                    continue;
+
+                // there might not be a valid pattern to use, so we have to make sure we have one
+                AutomationPattern[] patterns = urlbar.GetSupportedPatterns();
+                if (patterns.Length != 1)
+                    continue;
+
+                string ret;
+                try
+                {
+                    ret = ((ValuePattern)urlbar.GetCurrentPattern(patterns[0])).Current.Value;
+                }
+                catch
+                {
+                    // error occured
+                    continue;
+                }
+
+                // must match a domain name (and possibly "https://" in front)
+                if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
+                    continue;
+
+                return ret;
             }
-
-            // if we can't find the URLbar chrome changed their layout and even the automatic walk can't find it.
-            if (URLBar == null)
-                return null;
-
-            // If the URLBar has focus the user might be typing and the URL is probably not valid
-            if ((bool)URLBar.GetCurrentPropertyValue(AutomationElement.HasKeyboardFocusProperty))
-                return null;
-
-            // there might not be a valid pattern to use, so we have to make sure we have one
-            AutomationPattern[] patterns = URLBar.GetSupportedPatterns();
-            if (patterns.Length != 1)
-                return null;
-
-            string ret;
-            try
-            {
-                ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
-            }
-            catch
-            {
-                // error occured
-                return null;
-            }
-
-            // must match a domain name (and possibly "https://" in front)
-            if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
-                return null;
-
-            return ret;
+            return null;
         }
 
-        private bool ChromeIsRunning()
+        private void UpdateURLBars()
         {
-            return Process.GetProcessesByName("chrome").Length > 0;
+            foreach (Process proc in Process.GetProcessesByName("chrome"))
+            {
+                if (checkedProcesses.Contains(proc.Id))
+                    continue;
+
+                checkedProcesses.Add(proc.Id);
+                // the chrome process must have a window
+                if (proc.MainWindowHandle == IntPtr.Zero)
+                    continue;
+
+                // find the automation element
+                AutomationElement elm = AutomationElement.FromHandle(proc.MainWindowHandle);
+
+                var chromeMain = elm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Google Chrome"));
+                if (chromeMain == null)
+                    continue; // not the right chrome.exe
+
+                var urlBar = GetURLBar(chromeMain);
+                urlBars.Add(urlBar);
+            }
         }
 
-        private AutomationElement GetURLBar()
+        private AutomationElement GetURLBar(AutomationElement mainChrome)
         {
-            var mainChrome = GetMainChromeElement();
             if (mainChrome == null)
                 return null;
 
@@ -83,26 +88,6 @@ namespace PluginTwitchChat
             }
 
             return bar ?? AutomaticWalk(mainChrome);
-        }
-
-        private AutomationElement GetMainChromeElement()
-        {
-            foreach (Process chrome in Process.GetProcessesByName("chrome"))
-            {
-                // the chrome process must have a window
-                if (chrome.MainWindowHandle == IntPtr.Zero)
-                    continue;
-
-                // find the automation element
-                AutomationElement elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
-
-                var chromeMain = elm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Google Chrome"));
-                if (chromeMain == null)
-                    continue; // not the right chrome.exe
-
-                return chromeMain;
-            }
-            return null;
         }
 
         // manually walk through the tree
@@ -123,7 +108,7 @@ namespace PluginTwitchChat
                 API.Log(API.LogType.Warning, "Manual walk to find URL Bar in Chrome failed!");
                 return null;
             }
-            
+
         }
 
         // This should be reliable between versions but is very slow.
