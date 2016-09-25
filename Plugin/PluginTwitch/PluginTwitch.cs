@@ -59,7 +59,7 @@ namespace PluginTwitchChat
             }
             var channel = urlLocator.TwitchChannel;
             if (channel != null)
-                twitchClient.JoinChannel(channel);
+                twitchClient?.JoinChannel(channel);
         }
 
         internal void ReloadMain(API api)
@@ -71,30 +71,25 @@ namespace PluginTwitchChat
             string ouath = api.ReadString("Ouath", "");
             string fontFace = api.ReadString("FontFace", "");
             string imageDir = api.ReadString("ImageDir", "");
+            int width = api.ReadInt("Width", 0);
+            int height = api.ReadInt("Height", 0);
+            int fontSize = api.ReadInt("FontSize", 0);
+
             bool useSeperator = api.ReadInt("UseSeperator", 1) == 1;
             bool useBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
-            int width = api.ReadInt("Width", 500);
-            int height = api.ReadInt("Height", 500);
-            int fontSize = api.ReadInt("FontSize", 16);
             int imageQuality = Clamp(api.ReadInt("ImageQuality", 1), 1, 3);
 
-            if(user == "")
-            {
-                StringValue = "User name is missing in settings files Variables.inc.";
-                return;
-            }
+            StringValue = (user == "") ? "User name is missing in settings files UserSettings.inc." :
+                     /**/ (ouath == "") ? "Ouath is missing in settings files UserSettings.inc." :
+                     /**/ (fontFace == "") ? "Missing FontFace setting in Variables.inc." :
+                     /**/ (imageDir == "") ? "Missing ImageDir setting Variables.inc." :
+                     /**/ (width == 0) ? "Either Width setting in Variables.inc is missing or is zero." :
+                     /**/ (height == 0) ? "Either Height setting in Variables.inc is missing or is zero." :
+                     /**/ (fontSize == 0) ? "Either FontSize setting in Variables.inc is missing or is zero." :
+                     /**/ "";
 
-            if (ouath == "")
-            {
-                StringValue = "Ouath is missing in settings files Variables.inc.";
+            if (StringValue != "")
                 return;
-            }
-
-            if (fontFace == "" || imageDir == "")
-            {
-                StringValue = "Missing settings FontFace, ImageDir or FontSize.";
-                return;
-            }
 
             var size = new Size(width, height);
             var font = new Font(fontFace, fontSize);
@@ -216,9 +211,9 @@ namespace PluginTwitchChat
             var i = info.Index;
             switch (info.Type)
             {
-                case "X":      return () => { return messageHandler.GetLink(i)?.X ?? 0.0; };
-                case "Y":      return () => { return messageHandler.GetLink(i)?.Y ?? 0.0; };
-                case "Width":  return () => { return messageHandler.GetLink(i)?.Width ?? 0.0; };
+                case "X": return () => { return messageHandler.GetLink(i)?.X ?? 0.0; };
+                case "Y": return () => { return messageHandler.GetLink(i)?.Y ?? 0.0; };
+                case "Width": return () => { return messageHandler.GetLink(i)?.Width ?? 0.0; };
                 case "Height": return () => { return messageHandler.GetLink(i)?.Height ?? 0.0; };
                 case "Url":
                     StringValue = "";
