@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using Rainmeter;
 
 namespace PluginTwitchChat
@@ -26,6 +27,9 @@ namespace PluginTwitchChat
         private readonly string BetterTTVChannelUrl = @"https://api.betterttv.net/2/channels/{0}";
         private readonly string BetterTTVEmoteUrl = @"https://cdn.betterttv.net/emote/{0}/{1}";
 
+        private readonly string ClientID = "qr09gnapzzef6vgdat883tgank82y4h";
+
+        private JavaScriptSerializer jsonConverter;
         private ISet<string> beingDownloaded;
         private WebClient webClient;
         private int imageQuality;
@@ -46,7 +50,11 @@ namespace PluginTwitchChat
         public ImageDownloader(string imagePath, int imageQuality)
         {
             this.imageQuality = imageQuality;
+            jsonConverter = new JavaScriptSerializer();
+            jsonConverter.RegisterConverters(new[] { new DynamicJsonConverter() });
+
             webClient = new WebClient();
+            webClient.Headers["Client-ID"] = ClientID;
             beingDownloaded = new HashSet<string>();
             this.imagePath = imagePath;
 
@@ -62,7 +70,8 @@ namespace PluginTwitchChat
             betterTTVChannelEmotes = GetBetterTTWEmotes(betterTTVurl);
 
             var channelID = GetChannelID(channel);
-            if (channelID == string.Empty)
+
+            if (channelID == -1)
                 return;
 
             var url = string.Format(ChannelBadgesUrl, channelID);
@@ -101,6 +110,12 @@ namespace PluginTwitchChat
             return DownloadImage(url, id, replaceExistingFile: false);
         }
 
+        public string GetChannelStatus(string channel)
+        {
+            dynamic parsed = GetChannelJSON(channel);
+            return parsed?["status"] ?? "";
+        }
+
         private string DownloadBetterTTVEmote(BetterTTVEmote emote)
         {
             string quality = BetterTTVEmoteQuality(imageQuality);
@@ -125,10 +140,10 @@ namespace PluginTwitchChat
             if (json == "")
                 return urls;
 
-            dynamic parsed = JsonParser.Parse(json);
+            dynamic data = ParseJson(json);
             try
             {
-                foreach (var kv1 in parsed["badge_sets"])
+                foreach (var kv1 in data["badge_sets"])
                 {
                     var name = kv1.Key;
                     var v1 = kv1.Value;
@@ -152,20 +167,26 @@ namespace PluginTwitchChat
             return urls;
         }
 
-        private string GetChannelID(string channel)
+        private dynamic ParseJson(string json)
         {
+            return jsonConverter.Deserialize(json, typeof(object));
+        }
+
+        private int GetChannelID(string channel)
+        {
+            dynamic parsed = GetChannelJSON(channel);
+            return parsed?["_id"] ?? -1;
+        }
+
+        private dynamic GetChannelJSON(string channel)
+        {
+            channel = channel.Replace("#", "");
             var url = string.Format(ChannelUrl, channel);
             string json = DownloadString(url);
             if (json == string.Empty)
-                return string.Empty;
-
-            dynamic parsed = JsonParser.Parse(json);
-            if(!parsed.ContainsKey("_id"))
-            {
-                API.Log(API.LogType.Warning, "Could not parse badges Json from Twitch: " + json);
-                return "";
-            }
-            return parsed["_id"];
+                return null;
+            
+            return ParseJson(json);
         }
 
         private void DownloadGlobalBadges()
@@ -188,10 +209,10 @@ namespace PluginTwitchChat
             if (json == "")
                 return emotes;
 
-            dynamic parsed = JsonParser.Parse(json);
+            dynamic data = ParseJson(json);
             try
             {
-                foreach (var e in parsed["emotes"])
+                foreach (var e in data["emotes"])
                 {
                     var code = e["code"];
                     emotes[code] = new BetterTTVEmote
@@ -220,7 +241,7 @@ namespace PluginTwitchChat
             {
                 return webClient.DownloadString(url);
             }
-            catch (WebException)
+            catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
             {
                 API.Log(API.LogType.Warning, "Could not download string from " + url);
                 return string.Empty;

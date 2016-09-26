@@ -52,7 +52,6 @@ namespace PluginTwitchChat
                     durations.Add(duration);
                 }
             }
-            API.Log(API.LogType.Notice, "Durations: " + string.Join(", ", durations));
             durationCache[path] = durations;
             return durations;
         }

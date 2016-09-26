@@ -132,6 +132,13 @@ namespace PluginTwitchChat
                         StringValue = twitchClient.IsInChannel ? twitchClient.Channel : "";
                         return 0.0;
                     };
+                case "ChannelStatus":
+                    StringValue = "";
+                    return () =>
+                    {
+                        StringValue = twitchClient.IsInChannel ? twitchClient.ChannelStatus : "";
+                        return 0.0;
+                    };
                 case "Main":
                     return () =>
                     {

@@ -4,10 +4,11 @@ using System.Text;
 using IrcDotNet;
 using System.Threading;
 using System.Diagnostics;
-
+using System.Timers;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using Rainmeter;
 
 namespace PluginTwitchChat
 {
@@ -15,9 +16,11 @@ namespace PluginTwitchChat
     {
 
         public String Channel { get; private set; }
+        public String ChannelStatus { get; private set; }
         public bool IsInChannel { get; private set; }
 
         private const string Server = "irc.twitch.tv";
+        private const int ChannelStatusInterval = 5000; // ms
 
         private TwitchIrcClient client;
         private TwitchIrcClient senderClient;
@@ -26,6 +29,7 @@ namespace PluginTwitchChat
         private String username;
         private String ouath;
         private bool isConnected;
+        private System.Timers.Timer statusTimer;
 
         public TwitchClient(string username, string ouath, MessageHandler messageHandler, ImageDownloader imgDownloader)
         {
@@ -33,6 +37,7 @@ namespace PluginTwitchChat
             client = new TwitchIrcClient();
             senderClient = new TwitchIrcClient();
             Channel = "";
+            ChannelStatus = "";
             this.username = username;
             this.ouath = ouath;
             this.messageHandler = messageHandler;
@@ -84,6 +89,7 @@ namespace PluginTwitchChat
             client.Channels.Join(newChannel);
             Channel = newChannel;
             imgDownloader.SetChannel(newChannel);
+            SetupChannelStatusTimer();
         }
 
         public void LeaveChannel()
@@ -112,6 +118,21 @@ namespace PluginTwitchChat
             // This way the other client recieves a message with emote positions etc.
             // when the message is sent.
             senderClient.SendPrivateMessage(new String[] { Channel }, msg);
+        }
+
+        private void SetupChannelStatusTimer()
+        {
+            UpdateChannelStatus(null, null);
+            statusTimer?.Dispose();
+            statusTimer = new System.Timers.Timer(ChannelStatusInterval);
+            statusTimer.AutoReset = true;
+            statusTimer.Enabled = true;
+            statusTimer.Elapsed += UpdateChannelStatus;
+        }
+
+        private void UpdateChannelStatus(Object source, ElapsedEventArgs e)
+        {
+            ChannelStatus = imgDownloader.GetChannelStatus(Channel);
         }
 
         private void ClientRegistered(object sender, EventArgs e)

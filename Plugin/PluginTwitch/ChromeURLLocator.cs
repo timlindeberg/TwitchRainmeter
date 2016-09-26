@@ -19,7 +19,6 @@ namespace PluginTwitchChat
         public override string GetActiveUrl()
         {
             UpdateURLBars();
-            API.Log(API.LogType.Notice, "urlbars: " + urlBars.Count);
             foreach (var urlbar in urlBars)
             {
                 // If the URLBar has focus the user might be typing and the URL is probably not valid
