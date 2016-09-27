@@ -128,7 +128,7 @@ namespace PluginTwitchChat
                 msgQueue.Enqueue(msg);
         }
 
-        public List<Word> GetWords(string msg, Tags tags)
+        public List<Word> GetWords(string user, string msg, Tags tags)
         {
             var badges = new List<Image>();
             foreach (var badge in tags.Badges)
@@ -137,8 +137,6 @@ namespace PluginTwitchChat
                 badges.Add(new Image(badge, displayName, ImageString));
             }
             var emotes = tags.Emotes;
-
-            var user = tags["display-name"];
             var prefix = new Word(string.Format("<{0}>:", user));
 
             var words = new List<Word>();
@@ -223,7 +221,7 @@ namespace PluginTwitchChat
                 var name = "cheer" + roundedBits;
                 var displayName = "Cheer" + bitsInCheer;
                 var imageString = ImageString + " " + bitsInCheer;
-                var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath, repeat: false);
+                var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath, repeat: true);
                 words.Add(animatedImg);
                 return;
             }

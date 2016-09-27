@@ -24,6 +24,12 @@ namespace PluginTwitchChat
             }
         }
 
+
+        public String DisplayName
+        {
+            get { return tagMap.ContainsKey("display-name") ? tagMap["display-name"] : null; }
+        }
+
         public string this[string s]
         {
             get { return tagMap[s]; }

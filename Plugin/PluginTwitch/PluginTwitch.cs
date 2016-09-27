@@ -21,7 +21,6 @@ namespace PluginTwitchChat
 
         string StringValue;
         string tpe = "";
-        string channelString = "";
         Func<double> update;
 
         internal void Reload(API api, ref double maxValue)

@@ -97,7 +97,6 @@
     <Compile Include="EmbeddedDLLClass.cs" />
     <Compile Include="EmoteInfo.cs" />
     <Compile Include="ImageDownloader.cs" />
-    <Compile Include="DynamicJsonConverter.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="Link.cs" />
     <Compile Include="Message.cs" />

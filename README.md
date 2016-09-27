@@ -23,10 +23,10 @@ Please let me know of any issues or missing features you would like added!
 * Hover over images to see their names.
 * Clickable links.
 * Animated cheers.
+* Supports BetterTTV emotes, both gifs and pngs.
 
 
 **Missing features**:
-* Does not support BetterTTV emotes.
 * Automatic connection only works in the Chrome browser.
 * Some notifications are missing such as the message recieved when you type too fast 
 when a channel is in slow mode.
@@ -37,8 +37,8 @@ when a channel is in slow mode.
 1. Install the skin using the .rmskin package.
 2. Install the font you want to use for the skin by placing them in the Windows Font folder.
 3. Generate an Ouath code at http://www.twitchapps.com/tmi/.
-4. Enter your username and the Ouath code in the @Resources\Variables.inc file.
-5. Customize the settings in the Variables.inc file to your liking and make sure to specify the font you installed as well as the location of your Chrome browser.
+4. Enter your username and the Ouath code in the @Resources\UserSettings.inc file.
+5. Customize the settings in the @Resources\Variables.inc file to your liking and make sure to specify the font you installed as well as the location of your Chrome browser.
 6. You're all set!
 
 ## Usage

@@ -12,81 +12,104 @@ namespace PluginTwitchChat
 {
     public class ChromeURLLocator : WebBrowserURLLocator
     {
+
+        private static readonly PropertyCondition propertyNameChrome = new PropertyCondition(AutomationElement.NameProperty, "Google Chrome");
+        private static readonly PropertyCondition propertyNameEmpty = new PropertyCondition(AutomationElement.NameProperty, "");
+        private static readonly PropertyCondition propertyNameMain = new PropertyCondition(AutomationElement.NameProperty, "main");
+        private static readonly PropertyCondition propertyNameSearchBar = new PropertyCondition(AutomationElement.NameProperty, "Address and search bar");
+
         private bool ManualWalkFailed = false;
-        private List<AutomationElement> urlBars = new List<AutomationElement>();
-        private HashSet<int> checkedProcesses = new HashSet<int>();
+        private AutomationElement _URLBar;
+        private AutomationElement URLBar
+        {
+            get
+            {
+                if (_URLBar == null)
+                    _URLBar = GetURLBar();
+                return _URLBar;
+            }
+        }
 
         public override string GetActiveUrl()
         {
-            UpdateURLBars();
-            foreach (var urlbar in urlBars)
+            if (!ChromeIsRunning())
+            {
+                // Reset the URL bar if Chrome was closed down
+                _URLBar = null;
+                return null;
+            }
+
+            // if we can't find the URLbar chrome changed their layout and even the automatic walk can't find it.
+            if (URLBar == null)
+                return null;
+
+            try
             {
                 // If the URLBar has focus the user might be typing and the URL is probably not valid
-                if ((bool)urlbar.GetCurrentPropertyValue(AutomationElement.HasKeyboardFocusProperty))
-                    continue;
+                if ((bool)URLBar.GetCurrentPropertyValue(AutomationElement.HasKeyboardFocusProperty))
+                    return null;
 
                 // there might not be a valid pattern to use, so we have to make sure we have one
-                AutomationPattern[] patterns = urlbar.GetSupportedPatterns();
+                AutomationPattern[] patterns = URLBar.GetSupportedPatterns();
                 if (patterns.Length != 1)
-                    continue;
+                    return null;
 
-                string ret;
-                try
-                {
-                    ret = ((ValuePattern)urlbar.GetCurrentPattern(patterns[0])).Current.Value;
-                }
-                catch
-                {
-                    // error occured
-                    continue;
-                }
+                string ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
+
 
                 // must match a domain name (and possibly "https://" in front)
                 if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
-                    continue;
+                    return null;
 
                 return ret;
             }
-            return null;
-        }
-
-        private void UpdateURLBars()
-        {
-            foreach (Process proc in Process.GetProcessesByName("chrome"))
+            catch
             {
-                if (checkedProcesses.Contains(proc.Id))
-                    continue;
-
-                checkedProcesses.Add(proc.Id);
-                // the chrome process must have a window
-                if (proc.MainWindowHandle == IntPtr.Zero)
-                    continue;
-
-                // find the automation element
-                AutomationElement elm = AutomationElement.FromHandle(proc.MainWindowHandle);
-
-                var chromeMain = elm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Google Chrome"));
-                if (chromeMain == null)
-                    continue; // not the right chrome.exe
-
-                var urlBar = GetURLBar(chromeMain);
-                urlBars.Add(urlBar);
+                // error occured
+                return null;
             }
         }
 
-        private AutomationElement GetURLBar(AutomationElement mainChrome)
+        private bool ChromeIsRunning()
         {
+            return Process.GetProcessesByName("chrome").Length > 0;
+        }
+
+        private AutomationElement GetURLBar()
+        {
+            var mainChrome = GetMainChromeElement();
             if (mainChrome == null)
                 return null;
 
             AutomationElement bar = null;
             if (!ManualWalkFailed)
-            {
                 bar = ManualWalk(mainChrome);
-                ManualWalkFailed = bar == null;
-            }
 
-            return bar ?? AutomaticWalk(mainChrome);
+            if (bar != null)
+                return bar;
+
+            ManualWalkFailed = true;
+            return AutomaticWalk(mainChrome);
+        }
+
+        private AutomationElement GetMainChromeElement()
+        {
+            foreach (Process chrome in Process.GetProcessesByName("chrome"))
+            {
+                // the chrome process must have a window
+                if (chrome.MainWindowHandle == IntPtr.Zero)
+                    continue;
+
+                // find the automation element
+                AutomationElement elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
+
+                var chromeMain = elm.FindFirst(TreeScope.Children, propertyNameChrome);
+                if (chromeMain == null)
+                    continue; // not the right chrome.exe
+
+                return chromeMain;
+            }
+            return null;
         }
 
         // manually walk through the tree
@@ -95,11 +118,11 @@ namespace PluginTwitchChat
         {
             try
             {
-                var elm1 = mainChrome.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one
-                var elm2 = elm1.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""))[1]; // Second element is the correct one here as well
-                var elm3 = elm2.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "main"));
-                var elm4 = elm3.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, ""));
-                return elm4.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));
+                var elm1 = mainChrome.FindAll(TreeScope.Children, propertyNameEmpty)[1]; // Second element is the correct one
+                var elm2 = elm1.FindAll(TreeScope.Children, propertyNameEmpty)[1]; // Second element is the correct one here as well
+                var elm3 = elm2.FindFirst(TreeScope.Children, propertyNameMain);
+                var elm4 = elm3.FindFirst(TreeScope.Children, propertyNameEmpty);
+                return elm4.FindFirst(TreeScope.Children, propertyNameSearchBar);
             }
             catch
             {
@@ -113,7 +136,7 @@ namespace PluginTwitchChat
         // This should be reliable between versions but is very slow.
         private AutomationElement AutomaticWalk(AutomationElement mainChrome)
         {
-            return mainChrome.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));
+            return mainChrome.FindFirst(TreeScope.Descendants, propertyNameSearchBar);
         }
     }
 }

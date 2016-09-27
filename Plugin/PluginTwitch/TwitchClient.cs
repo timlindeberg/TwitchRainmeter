@@ -161,7 +161,6 @@ namespace PluginTwitchChat
         private void LeftChannel(object sender, IrcChannelEventArgs e)
         {
             IsInChannel = false;
-            messageHandler.Reset();
         }
 
         private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)
@@ -174,7 +173,7 @@ namespace PluginTwitchChat
             if (e.Source.Name == "twitchnotify")
                 messageHandler.AddMessage(new Notice(e.Text));
             else
-                messageHandler.AddMessage(new PrivMessage(e.Text, e.Tags));
+                messageHandler.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)

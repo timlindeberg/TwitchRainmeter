@@ -51,7 +51,6 @@ namespace PluginTwitchChat
         {
             this.imageQuality = imageQuality;
             jsonConverter = new JavaScriptSerializer();
-            jsonConverter.RegisterConverters(new[] { new DynamicJsonConverter() });
 
             webClient = new WebClient();
             webClient.Headers["Client-ID"] = ClientID;
@@ -140,7 +139,7 @@ namespace PluginTwitchChat
             if (json == "")
                 return urls;
 
-            dynamic data = ParseJson(json);
+            dynamic data = jsonConverter.DeserializeObject(json);
             try
             {
                 foreach (var kv1 in data["badge_sets"])
@@ -153,7 +152,7 @@ namespace PluginTwitchChat
                         var version = kv2.Key;
                         var v2 = kv2.Value;
                         string url = v2[BadgeQuality(imageQuality)];
-                        if (url == "null")
+                        if (url == null)
                             url = v2[BadgeQuality(1)];
                         urls[name + version] = url;
                     }
@@ -165,11 +164,6 @@ namespace PluginTwitchChat
             }
 
             return urls;
-        }
-
-        private dynamic ParseJson(string json)
-        {
-            return jsonConverter.Deserialize(json, typeof(object));
         }
 
         private int GetChannelID(string channel)
@@ -186,7 +180,7 @@ namespace PluginTwitchChat
             if (json == string.Empty)
                 return null;
             
-            return ParseJson(json);
+            return jsonConverter.DeserializeObject(json);
         }
 
         private void DownloadGlobalBadges()
@@ -209,7 +203,7 @@ namespace PluginTwitchChat
             if (json == "")
                 return emotes;
 
-            dynamic data = ParseJson(json);
+            dynamic data = jsonConverter.DeserializeObject(json);
             try
             {
                 foreach (var e in data["emotes"])

@@ -1,3 +1,15 @@
+# 1.2 (2016-09-27)
+
+Features:
+  
+  - Added support for BetterTTV emotes.
+  - Channel status can now be accessed through the [TwitchChannelStatus] measure.
+
+Bugfixes:
+  
+  - Fixed bug where cheers would stop animating. 
+  - Slightly improved performance of Chrome auto connector.
+
 # 1.1 (2016-09-11)
 
 Features:
