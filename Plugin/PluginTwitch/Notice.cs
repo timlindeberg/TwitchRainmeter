@@ -19,7 +19,7 @@ namespace PluginTwitchChat
         {
             var words = msgHandler.GetWords(Message);
             var lines = new List<Line>();
-            msgHandler.AddSeperator(lines);
+                msgHandler.AddSeperator(lines);
             msgHandler.WordWrap(words, lines);
             msgHandler.AddSeperator(lines);
             msgHandler.AddLines(lines);

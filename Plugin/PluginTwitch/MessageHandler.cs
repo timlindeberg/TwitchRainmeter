@@ -32,6 +32,7 @@ namespace PluginTwitchChat
         private static readonly Regex CheerRegex = new Regex(@"(?:^|\s)cheer(\d+)(?:\s|$)");
         private static readonly string SeperatorSign = "─";
 
+        private Line lastLine;
         private Queue<Line> lineQueue;
         private Queue<Message> msgQueue;
 
@@ -112,14 +113,19 @@ namespace PluginTwitchChat
 
         public void AddSeperator(List<Line> lines)
         {
-            if (Seperator != null)
-                lines.Add(Seperator);
+            lines.Add(Seperator);
         }
 
         public void AddLines(List<Line> lines)
         {
-            foreach (var l in lines)
-                lineQueue.Enqueue(l);
+            foreach (var line in lines)
+            {
+                if (lastLine == Seperator && line == Seperator)
+                    continue;
+
+                lineQueue.Enqueue(line);
+                lastLine = line;
+            }
         }
 
         public void AddMessage(Message msg)
