@@ -28,38 +28,46 @@ namespace PluginTwitchChat
         public Line Seperator;
         public string ImageString;
 
+        private const string SeperatorSign = "─";
+
         private static readonly Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
         private static readonly Regex CheerRegex = new Regex(@"(?:^|\s)cheer(\d+)(?:\s|$)");
-        private static readonly string SeperatorSign = "─";
+
+        private readonly bool useBetterTTVEmotes;
+        private readonly bool useSeperator;
+        private readonly int maxWidth;
+        private readonly int maxHeight;
+        private readonly TwitchDownloader imgDownloader;
+        private readonly StringMeasurer measurer;
 
         private Line lastLine;
         private Queue<Line> lineQueue;
         private Queue<Message> msgQueue;
 
-        private double spaceWidth;
-        private ImageDownloader imgDownloader;
-        private StringMeasurer measurer;
-        private MessageHandlerSettings settings;
+        private readonly double spaceWidth;
 
-        public MessageHandler(MessageHandlerSettings settings, StringMeasurer measurer, ImageDownloader imgDownloader)
+        public MessageHandler(Settings settings, StringMeasurer measurer, TwitchDownloader imgDownloader)
         {
+            useBetterTTVEmotes = settings.UseBetterTTV;
+            useSeperator = settings.UseSeperator;
+            maxWidth = settings.Width;
+            maxHeight = settings.Height;
+            this.imgDownloader = imgDownloader;
+            this.measurer = measurer;
+
             lineQueue = new Queue<Line>();
             msgQueue = new Queue<Message>();
             Images = new List<Image>();
             Gifs = new List<AnimatedImage>();
             Links = new List<Link>();
             String = "";
-            this.measurer = measurer;
-            this.imgDownloader = imgDownloader;
-            this.measurer = measurer;
-            this.settings = settings;
 
             ImageString = CalculateImageString();
-            var width = measurer.GetWidth(ImageString);
-            var height = measurer.GetHeight("A");
+            var imageWidth = measurer.GetWidth(ImageString);
+            var imageHeight = measurer.GetHeight("A");
             if (settings.UseSeperator)
                 CalculateSeperator();
-            ImageSize = new Size { Width = Convert.ToInt32(width), Height = Convert.ToInt32(height) };
+            ImageSize = new Size { Width = Convert.ToInt32(imageWidth), Height = Convert.ToInt32(imageHeight) };
             spaceWidth = measurer.GetWidth(" ");
         }
 
@@ -231,7 +239,7 @@ namespace PluginTwitchChat
                 words.Add(animatedImg);
                 return;
             }
-            if (settings.UseBetterTTVEmotes)
+            if (useBetterTTVEmotes)
             {
                 var betterTTVEmote = imgDownloader.GetBetterTTVEmote(word);
                 if (betterTTVEmote != null)
@@ -245,13 +253,13 @@ namespace PluginTwitchChat
             words.Add(new Word(word));
         }
 
-        private Image GetBetterTTVImage(ImageDownloader.BetterTTVEmote betterTTVEmote)
+        private Image GetBetterTTVImage(TwitchDownloader.BetterTTVEmote betterTTVEmote)
         {
             var name = betterTTVEmote.name;
             switch (betterTTVEmote.fileEnding)
             {
-                case ImageDownloader.FileEnding.PNG: return new Image(name, name, ImageString);
-                case ImageDownloader.FileEnding.GIF: return new AnimatedImage(name, name, ImageString, betterTTVEmote.url, repeat: true);
+                case TwitchDownloader.FileEnding.PNG: return new Image(name, name, ImageString);
+                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, name, ImageString, betterTTVEmote.url, repeat: true);
                 default:                             return null;
             }
         }
@@ -281,7 +289,7 @@ namespace PluginTwitchChat
                     pos.Width = Convert.ToInt32(newLen - x);
                 }
 
-                if (newLen <= settings.MaxSize.Width)
+                if (newLen <= maxWidth)
                 {
                     line.Add(word);
                     len = newLen;
@@ -289,7 +297,7 @@ namespace PluginTwitchChat
                 }
 
                 // Word no longer fits in line.
-                if (isEmpty || measurer.GetWidth(word) > settings.MaxSize.Width)
+                if (isEmpty || measurer.GetWidth(word) > maxWidth)
                 {
                     // Either the current line is empty and the word doesn't fit on one line
                     // or the line is not empty but the word won't fit in itself either.
@@ -319,7 +327,7 @@ namespace PluginTwitchChat
                 return new Tuple<Word, Word>(new Word(s1), new Word(s2));
 
             var link = word as Link;
-            var l1 = new Link(link.Url, s1) { X = link.X, Width = settings.MaxSize.Width - link.X };
+            var l1 = new Link(link.Url, s1) { X = link.X, Width = maxWidth - link.X };
             var l2 = new Link(link.Url, s2); // l2 will get positional information later.
             return new Tuple<Word, Word>(l1, l2);
         }
@@ -332,7 +340,7 @@ namespace PluginTwitchChat
             {
                 int mid = (end + start) / 2;
                 var wordLen = measurer.GetWidth(str.Substring(0, mid));
-                if (wordLen <= settings.MaxSize.Width)
+                if (wordLen <= maxWidth)
                     start = mid + 1;
                 else
                     end = mid;
@@ -348,7 +356,7 @@ namespace PluginTwitchChat
             {
                 sb.AppendLine(line.Text);
                 var height = measurer.GetHeight(sb);
-                while (height > settings.MaxSize.Height && lineQueue.Count > 1) // Keep at least one line in the queue
+                while (height > maxWidth && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
@@ -406,7 +414,7 @@ namespace PluginTwitchChat
             {
                 sb.Append(SeperatorSign);
                 w = measurer.GetWidth(sb);
-            } while (w < settings.MaxSize.Width);
+            } while (w < maxWidth);
             sb.Remove(0, 1);
             Seperator.Add(sb.ToString());
         }

@@ -66,47 +66,26 @@ namespace PluginTwitchChat
             if (twitchClient != null)
                 return;
 
-            string user = api.ReadString("Username", "").ToLower();
-            string ouath = api.ReadString("Ouath", "");
-            string fontFace = api.ReadString("FontFace", "");
-            string imageDir = api.ReadString("ImageDir", "");
-            int width = api.ReadInt("Width", 0);
-            int height = api.ReadInt("Height", 0);
-            int fontSize = api.ReadInt("FontSize", 0);
+            var settings = new Settings(api);
 
-            bool useSeperator = api.ReadInt("UseSeperator", 1) == 1;
-            bool useBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
-            int imageQuality = Clamp(api.ReadInt("ImageQuality", 1), 1, 3);
-
-            StringValue = (user == "") ? "User name is missing in settings files UserSettings.inc." :
-                     /**/ (ouath == "") ? "Ouath is missing in settings files UserSettings.inc." :
-                     /**/ (fontFace == "") ? "Missing FontFace setting in Variables.inc." :
-                     /**/ (imageDir == "") ? "Missing ImageDir setting Variables.inc." :
-                     /**/ (width == 0) ? "Either Width setting in Variables.inc is missing or is zero." :
-                     /**/ (height == 0) ? "Either Height setting in Variables.inc is missing or is zero." :
-                     /**/ (fontSize == 0) ? "Either FontSize setting in Variables.inc is missing or is zero." :
-                     /**/ "";
-
-            if (StringValue != "")
+            if(settings.ErrorMessage != null)
+            {
+                StringValue = settings.ErrorMessage;
                 return;
+            }
 
-            var size = new Size(width, height);
-            var font = new Font(fontFace, fontSize);
-            var imgDownloader = new ImageDownloader(imageDir, imageQuality);
+            var font = new Font(settings.FontFace, settings.FontSize);
+            var twitchDownloader = new TwitchDownloader(settings);
             stringMeasurer = new StringMeasurer(font);
-
-            var settings = new MessageHandlerSettings { UseBetterTTVEmotes = useBetterTTV, MaxSize = size, UseSeperator = useSeperator };
-            messageHandler = new MessageHandler(settings, stringMeasurer, imgDownloader);
-            twitchClient = new TwitchClient(user, ouath, messageHandler, imgDownloader);
-        }
-
-        internal int Clamp(int v, int min, int max)
-        {
-            return v < min ? min : v > max ? max : v;
+            messageHandler = new MessageHandler(settings, stringMeasurer, twitchDownloader);
+            twitchClient = new TwitchClient(settings, messageHandler, twitchDownloader);
         }
 
         internal void Cleanup()
         {
+            if (tpe != "Main")
+                return;
+
             twitchClient?.Disconnect();
             twitchClient = null;
             stringMeasurer?.Dispose();
@@ -138,9 +117,19 @@ namespace PluginTwitchChat
                         StringValue = twitchClient.IsInChannel ? twitchClient.ChannelStatus : "";
                         return 0.0;
                     };
+                case "Viewers":
+                    StringValue = "";
+                    return () =>
+                    {
+                        StringValue = twitchClient.IsInChannel ? twitchClient.Viewers : "";
+                        return 0.0;
+                    };
+                case "ViewerCount":
+                    return () => { return twitchClient.ViewerCount;};
                 case "Main":
                     return () =>
                     {
+                        twitchClient.Update();
                         messageHandler.Update();
                         StringValue = messageHandler.String;
                         return 0.0;

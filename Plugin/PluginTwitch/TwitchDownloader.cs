@@ -15,25 +15,29 @@ using Rainmeter;
 namespace PluginTwitchChat
 {
 
-    public class ImageDownloader
+    public class TwitchDownloader
     {
 
-        private readonly string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
-        private readonly string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
-        private readonly string EmoteUrl = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
-        private readonly string CheerUrl = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
-        private readonly string ChannelUrl = @"https://api.twitch.tv/kraken/channels/{0}";
-        private readonly string BetterTTVGlobalUrl = @"https://api.betterttv.net/2/emotes";
-        private readonly string BetterTTVChannelUrl = @"https://api.betterttv.net/2/channels/{0}";
-        private readonly string BetterTTVEmoteUrl = @"https://cdn.betterttv.net/emote/{0}/{1}";
+        private const string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
+        private const string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
+        private const string EmoteUrl = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
+        private const string CheerUrl = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
+        private const string ChannelUrl = @"https://api.twitch.tv/kraken/channels/{0}";
+        private const string ChattersUrl = @"https://tmi.twitch.tv/group/user/{0}/chatters";
+        private const string BetterTTVGlobalUrl = @"https://api.betterttv.net/2/emotes";
+        private const string BetterTTVChannelUrl = @"https://api.betterttv.net/2/channels/{0}";
+        private const string BetterTTVEmoteUrl = @"https://cdn.betterttv.net/emote/{0}/{1}";
 
-        private readonly string ClientID = "qr09gnapzzef6vgdat883tgank82y4h";
+        private const string ClientID = "qr09gnapzzef6vgdat883tgank82y4h";
+        private readonly string[] ViewerTypes = new[] { "moderators", "staff", "admins", "global_mods", "viewers" };
 
-        private JavaScriptSerializer jsonConverter;
-        private ISet<string> beingDownloaded;
-        private WebClient webClient;
-        private int imageQuality;
-        private string imagePath;
+        private readonly int imageQuality;
+        private readonly string imageDir;
+
+        private readonly JavaScriptSerializer jsonConverter;
+        private readonly ISet<string> beingDownloaded;
+        private readonly WebClient webClient;
+
         private Dictionary<string, BetterTTVEmote> betterTTVGlobalEmotes;
         private Dictionary<string, BetterTTVEmote> betterTTVChannelEmotes;
 
@@ -47,15 +51,15 @@ namespace PluginTwitchChat
 
         public enum FileEnding { PNG, GIF } 
 
-        public ImageDownloader(string imagePath, int imageQuality)
+        public TwitchDownloader(Settings settings)
         {
-            this.imageQuality = imageQuality;
-            jsonConverter = new JavaScriptSerializer();
+            imageQuality = settings.ImageQuality;
+            imageDir = settings.ImageDir;
 
+            jsonConverter = new JavaScriptSerializer();
             webClient = new WebClient();
             webClient.Headers["Client-ID"] = ClientID;
             beingDownloaded = new HashSet<string>();
-            this.imagePath = imagePath;
 
             DownloadGlobalBadges();
             betterTTVGlobalEmotes = GetBetterTTWEmotes(BetterTTVGlobalUrl);
@@ -113,6 +117,25 @@ namespace PluginTwitchChat
         {
             dynamic parsed = GetChannelJSON(channel);
             return parsed?["status"] ?? "";
+        }
+
+        public List<string> GetViewers(string channel)
+        {
+            List<string> viewers = new List<string>();
+
+            channel = channel.Replace("#", "");
+            var url = string.Format(ChattersUrl, channel);
+            string json = DownloadString(url);
+
+            if (json == string.Empty)
+                return viewers;
+
+            dynamic data = jsonConverter.DeserializeObject(json);
+            var chatters = data["chatters"];
+            foreach(var type in ViewerTypes)
+                foreach (var viewer in chatters[type])
+                    viewers.Add(viewer);
+            return viewers;
         }
 
         private string DownloadBetterTTVEmote(BetterTTVEmote emote)
@@ -245,8 +268,8 @@ namespace PluginTwitchChat
         private string GetFilePath(string name, FileEnding fileEnding = FileEnding.PNG, int frame = -1)
         {
             var f = Enum.GetName(typeof(FileEnding), fileEnding).ToLower();
-            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", imagePath, name, imageQuality, f) :
-                                 string.Format("{0}\\{1}-{2}_{3}.{4}", imagePath, name, frame, imageQuality, f);
+            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", imageDir, name, imageQuality, f) :
+                                 string.Format("{0}\\{1}-{2}_{3}.{4}", imageDir, name, frame, imageQuality, f);
         }
 
         private string DownloadImage(string url, string fileName, bool replaceExistingFile, FileEnding fileEnding = FileEnding.PNG)
