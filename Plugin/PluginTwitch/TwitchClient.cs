@@ -131,7 +131,6 @@ namespace PluginTwitchChat
             var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             if (time < lastChannelUpdate + updateTime)
                 return;
-            API.Log(API.LogType.Notice, "Updating channel info");
 
             lastChannelUpdate = time;
             if(updateChannelInfoTask == null || updateChannelInfoTask.IsCompleted)

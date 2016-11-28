@@ -40,6 +40,7 @@ namespace PluginTwitchChat
 
         private Dictionary<string, BetterTTVEmote> betterTTVGlobalEmotes;
         private Dictionary<string, BetterTTVEmote> betterTTVChannelEmotes;
+        private Dictionary<string, string> badgeDescriptions;
 
         public class BetterTTVEmote
         {
@@ -49,7 +50,7 @@ namespace PluginTwitchChat
             public string url;
         }
 
-        public enum FileEnding { PNG, GIF } 
+        public enum FileEnding { PNG, GIF }
 
         public TwitchDownloader(Settings settings)
         {
@@ -60,6 +61,7 @@ namespace PluginTwitchChat
             webClient = new WebClient();
             webClient.Headers["Client-ID"] = ClientID;
             beingDownloaded = new HashSet<string>();
+            badgeDescriptions = new Dictionary<string, string>();
 
             DownloadGlobalBadges();
             betterTTVGlobalEmotes = GetBetterTTWEmotes(BetterTTVGlobalUrl);
@@ -78,26 +80,14 @@ namespace PluginTwitchChat
                 return;
 
             var url = string.Format(ChannelBadgesUrl, channelID);
-            var badgeUrls = GetBadgeUrls(url);
-            var name = "subscriber1";
-
-            if (!badgeUrls.ContainsKey(name))
-                return;
-
-            DownloadImage(badgeUrls[name], name, replaceExistingFile: true);
+            DownloadBadges(url);
         }
-        
+
         public BetterTTVEmote GetBetterTTVEmote(string word)
         {
-            BetterTTVEmote emote = null;
-            foreach (var map in new[] { betterTTVGlobalEmotes, betterTTVChannelEmotes })
-            {
-                if (map.ContainsKey(word))
-                {
-                    emote = map[word];
-                    break;
-                }
-            }
+            BetterTTVEmote emote = betterTTVGlobalEmotes.ContainsKey(word) ? betterTTVGlobalEmotes[word] :
+                              /**/ betterTTVChannelEmotes.ContainsKey(word) ? betterTTVChannelEmotes[word] :
+                              /**/ null;
 
             if (emote == null)
                 return null;
@@ -132,7 +122,7 @@ namespace PluginTwitchChat
 
             dynamic data = jsonConverter.DeserializeObject(json);
             var chatters = data["chatters"];
-            foreach(var type in ViewerTypes)
+            foreach (var type in ViewerTypes)
                 foreach (var viewer in chatters[type])
                     viewers.Add(viewer);
             return viewers;
@@ -155,9 +145,26 @@ namespace PluginTwitchChat
             return DownloadImage(url, name, replaceExistingFile: false, fileEnding: FileEnding.GIF);
         }
 
-        private Dictionary<string, string> GetBadgeUrls(string badgeUrl)
+        public string GetDescription(string badgeName)
         {
-            Dictionary<string, string> urls = new Dictionary<string, string>();
+            return badgeName.StartsWith("bits") ?
+                   "cheer " + badgeName.Replace("bits", "") :
+                   badgeDescriptions[badgeName];
+        }
+
+        private void DownloadBadges(string badgeUrl)
+        {
+            foreach (var badgeInfo in GetBadgeInfo(badgeUrl))
+            {
+                var name = badgeInfo.Name;
+                badgeDescriptions[name] = badgeInfo.Description;
+                DownloadImage(badgeInfo.URL, name, replaceExistingFile: true);
+            }
+        }
+
+        private List<BadgeInfo> GetBadgeInfo(string badgeUrl)
+        {
+            List<BadgeInfo> urls = new List<BadgeInfo>();
             string json = DownloadString(badgeUrl);
             if (json == "")
                 return urls;
@@ -174,10 +181,9 @@ namespace PluginTwitchChat
                     {
                         var version = kv2.Key;
                         var v2 = kv2.Value;
-                        string url = v2[BadgeQuality(imageQuality)];
-                        if (url == null)
-                            url = v2[BadgeQuality(1)];
-                        urls[name + version] = url;
+                        string url = v2[BadgeQuality(imageQuality)] ?? v2[BadgeQuality(1)];
+                        string description = v2["description"];
+                        urls.Add(new BadgeInfo(name + version, url, description));
                     }
                 }
             }
@@ -202,20 +208,13 @@ namespace PluginTwitchChat
             string json = DownloadString(url);
             if (json == string.Empty)
                 return null;
-            
+
             return jsonConverter.DeserializeObject(json);
         }
 
         private void DownloadGlobalBadges()
         {
-            var globalBadgesFileNames = GetBadgeUrls(GlobalBadgesUrl);
-
-            foreach (var kv in globalBadgesFileNames)
-            {
-                string fileName = kv.Key;
-                string url = kv.Value;
-                DownloadImage(url, fileName, replaceExistingFile: false);
-            }
+            DownloadBadges(GlobalBadgesUrl);
         }
 
         private Dictionary<string, BetterTTVEmote> GetBetterTTWEmotes(string url)
@@ -249,7 +248,7 @@ namespace PluginTwitchChat
 
         private T ParseEnum<T>(string value)
         {
-            return (T)Enum.Parse(typeof(T), value, ignoreCase:true);
+            return (T)Enum.Parse(typeof(T), value, ignoreCase: true);
         }
 
         private string DownloadString(string url)
@@ -274,22 +273,24 @@ namespace PluginTwitchChat
 
         private string DownloadImage(string url, string fileName, bool replaceExistingFile, FileEnding fileEnding = FileEnding.PNG)
         {
-            var file = GetFilePath(fileName, fileEnding);
+            var path = GetFilePath(fileName, fileEnding);
 
-            if (beingDownloaded.Contains(file))
-                return file;
+            if (beingDownloaded.Contains(path))
+                return path;
 
             lock (beingDownloaded)
                 beingDownloaded.Add(fileName);
 
-            var exists = File.Exists(file);
-            if (replaceExistingFile || !exists)
+            if (replaceExistingFile || !File.Exists(path))
             {
                 try
                 {
-                    webClient.DownloadFile(url, file);
-                    if (fileEnding == FileEnding.GIF)
-                        SplitGifFrames(file, fileName);
+                    var uri = new Uri(url);
+                    switch (fileEnding)
+                    {
+                        case FileEnding.GIF: DownloadGif(uri, path, fileName); break;
+                        case FileEnding.PNG: webClient.DownloadFile(uri, path); break;
+                    }
                 }
                 catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
                 {
@@ -298,9 +299,15 @@ namespace PluginTwitchChat
             }
 
             lock (beingDownloaded)
-                beingDownloaded.Remove(file);
+                beingDownloaded.Remove(path);
 
-            return file;
+            return path;
+        }
+
+        private void DownloadGif(Uri uri, string path, string fileName)
+        {
+            webClient.DownloadFile(uri, path);
+            SplitGifFrames(path, fileName);
         }
 
         private void SplitGifFrames(string path, string name)
@@ -310,16 +317,14 @@ namespace PluginTwitchChat
                 int frameCount = gif.GetFrameCount(FrameDimension.Time);
                 for (int frame = 0; ;)
                 {
-                    var file = GetFilePath(name, frame: frame);
+                    var fileName = GetFilePath(name, frame: frame);
                     using (var bmp = new Bitmap(gif))
-                        bmp.Save(file);
-
+                        bmp.Save(fileName);
                     if (++frame >= frameCount) break;
                     gif.SelectActiveFrame(FrameDimension.Time, frame);
                 }
             }
         }
-
 
         private string CheerColor(int amount)
         {
@@ -363,6 +368,20 @@ namespace PluginTwitchChat
                 case 2: return "2";
                 case 3: return "4";
                 default: return "";
+            }
+        }
+        
+        private class BadgeInfo
+        {
+            public String Name { get; set; }
+            public String URL { get; set; }
+            public String Description { get; set; }
+
+            public BadgeInfo(String name, String url, String description)
+            {
+                Name = name;
+                URL = url;
+                Description = description;
             }
         }
     }

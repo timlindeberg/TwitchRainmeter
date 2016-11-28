@@ -51,7 +51,7 @@ NumImages=200
 ; The maximum number of gifs that can be shown. Same principle as NumImages.
 ; Currently only works for cheers. These have a higher update frequency than
 ; images to support animations and are therefore more resource intensive.
-NumGifs=10
+NumGifs=100
 
 ; The maximum number of links that are clickable in the chat window. Same 
 ; principle as NumImages. A link that wraps over two two lines will count as
@@ -73,12 +73,9 @@ ImageDir=#@#images
 ; status) is updated. The value is given in milliseconds (e.g. 10000, the 
 ; values are updated every 10 seconds). There can be quite a lot of data to
 ; to fetch so updating these values often will cause lag.
-; Set to -1 to disable channel information (will increase performance).
+; Set to -1 to disable channel information (can increase performance).
+; Setting it to 0 will fetch the data each time the skin is updated.
 ChannelUpdateTime=10000
-
-; The maximum number of viewers that will be returned [Viewers]. A too high
-; number will cause significant lag in channels with many users.
-MaxViewerNames=500
 
 ;=============================================================================;
 ;-------------------------- Channel input settings ---------------------------;
@@ -152,3 +149,38 @@ LinkColor=D0E8FE
 
 ; The height of the chat window.
 ChatHeight=660
+
+;=============================================================================;
+;------------------------------ Viewers Settings -----------------------------;
+;=============================================================================;
+
+; The font used in the header of the viewers skin. 
+ViewersHeaderFont=Nexa Bold
+
+; The font used in the text of the viewers skin. 
+ViewersTextFont=Nexa Bold
+
+; The height of the header of the viewers skin
+ViewersHeaderHeight=55
+
+; The size of the font in the header of the viewers skin
+ViewersHeaderFontSize=30
+
+; The size of the font in the text of the viewers skin
+ViewersTextFontSize=10
+
+; The color of the the header of the viewers skin
+ViewersHeaderFontColor=A7D2FB
+
+; The color of the text of the viewers skin
+ViewersTextFontColor=FFFFFF
+
+; The height of the viewers window.
+ViewersHeight=600
+
+; The width of the viewers window.
+ViewersWidth=300
+
+; The maximum number of viewers that will be shown in [Viewers]. A too high
+; number will cause significant lag in channels with many users.
+MaxViewerNames=200

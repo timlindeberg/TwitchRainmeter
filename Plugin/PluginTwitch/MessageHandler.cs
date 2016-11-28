@@ -37,7 +37,7 @@ namespace PluginTwitchChat
         private readonly bool useSeperator;
         private readonly int maxWidth;
         private readonly int maxHeight;
-        private readonly TwitchDownloader imgDownloader;
+        private readonly TwitchDownloader downloader;
         private readonly StringMeasurer measurer;
 
         private Line lastLine;
@@ -46,13 +46,13 @@ namespace PluginTwitchChat
 
         private readonly double spaceWidth;
 
-        public MessageHandler(Settings settings, StringMeasurer measurer, TwitchDownloader imgDownloader)
+        public MessageHandler(Settings settings, StringMeasurer measurer, TwitchDownloader downloader)
         {
             useBetterTTVEmotes = settings.UseBetterTTV;
             useSeperator = settings.UseSeperator;
             maxWidth = settings.Width;
             maxHeight = settings.Height;
-            this.imgDownloader = imgDownloader;
+            this.downloader = downloader;
             this.measurer = measurer;
 
             lineQueue = new Queue<Line>();
@@ -147,7 +147,7 @@ namespace PluginTwitchChat
             var badges = new List<Image>();
             foreach (var badge in tags.Badges)
             {
-                var displayName = char.ToUpper(badge[0]) + badge.Substring(1, badge.Length - 2);
+                var displayName = downloader.GetDescription(badge);
                 badges.Add(new Image(badge, displayName, ImageString));
             }
             var emotes = tags.Emotes;
@@ -172,7 +172,7 @@ namespace PluginTwitchChat
                     var emote = emotes[emoteIndex];
                     if (pos == emote.Start)
                     {
-                        imgDownloader.DownloadEmote(emote.ID);
+                        downloader.DownloadEmote(emote.ID);
                         var displayName = msg.Substring(emote.Start, emote.Length + 1);
                         var img = new Image(emote.ID, displayName, ImageString);
                         words.Add(img);
@@ -231,7 +231,7 @@ namespace PluginTwitchChat
                 bits -= bitsInCheer;
                 var roundedBits = RoundBits(bitsInCheer);
 
-                var gifPath = imgDownloader.DownloadCheer(roundedBits);
+                var gifPath = downloader.DownloadCheer(roundedBits);
                 var name = "cheer" + roundedBits;
                 var displayName = "Cheer" + bitsInCheer;
                 var imageString = ImageString + " " + bitsInCheer;
@@ -241,7 +241,7 @@ namespace PluginTwitchChat
             }
             if (useBetterTTVEmotes)
             {
-                var betterTTVEmote = imgDownloader.GetBetterTTVEmote(word);
+                var betterTTVEmote = downloader.GetBetterTTVEmote(word);
                 if (betterTTVEmote != null)
                 {
                     var img = GetBetterTTVImage(betterTTVEmote);
@@ -256,11 +256,12 @@ namespace PluginTwitchChat
         private Image GetBetterTTVImage(TwitchDownloader.BetterTTVEmote betterTTVEmote)
         {
             var name = betterTTVEmote.name;
+            var displayName = name + " [ BetterTTV ]";
             switch (betterTTVEmote.fileEnding)
             {
-                case TwitchDownloader.FileEnding.PNG: return new Image(name, name, ImageString);
-                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, name, ImageString, betterTTVEmote.url, repeat: true);
-                default:                             return null;
+                case TwitchDownloader.FileEnding.PNG: return new Image(name, displayName, ImageString);
+                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, displayName, ImageString, betterTTVEmote.url, repeat: true);
+                default:                              return null;
             }
         }
 
@@ -356,7 +357,7 @@ namespace PluginTwitchChat
             {
                 sb.AppendLine(line.Text);
                 var height = measurer.GetHeight(sb);
-                while (height > maxWidth && lineQueue.Count > 1) // Keep at least one line in the queue
+                while (height > maxHeight && lineQueue.Count > 1) // Keep at least one line in the queue
                 {
                     var firstLine = lineQueue.Dequeue();
                     sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
