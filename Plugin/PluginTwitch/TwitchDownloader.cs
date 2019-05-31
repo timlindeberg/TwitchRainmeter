@@ -20,13 +20,20 @@ namespace PluginTwitchChat
 
         private const string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
         private const string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
+
         private const string EmoteUrl = @"http://static-cdn.jtvnw.net/emoticons/v1/{0}/{1}";
         private const string CheerUrl = @"http://static-cdn.jtvnw.net/bits/dark/animated/{0}/{1}";
+
         private const string ChannelUrl = @"https://api.twitch.tv/kraken/channels/{0}";
         private const string ChattersUrl = @"https://tmi.twitch.tv/group/user/{0}/chatters";
+
         private const string BetterTTVGlobalUrl = @"https://api.betterttv.net/2/emotes";
         private const string BetterTTVChannelUrl = @"https://api.betterttv.net/2/channels/{0}";
         private const string BetterTTVEmoteUrl = @"https://cdn.betterttv.net/emote/{0}/{1}";
+
+        private const string FrankerFacezGlobalUrl = @"https://api.frankerfacez.com/v1/set/global";
+        private const string FrankerFacezChannelUrl = @"https://api.frankerfacez.com/v1/room/{0}";
+
 
         private const string ClientID = "qr09gnapzzef6vgdat883tgank82y4h";
         private readonly string[] ViewerTypes = new[] { "moderators", "staff", "admins", "global_mods", "viewers" };
@@ -37,16 +44,18 @@ namespace PluginTwitchChat
         private readonly JavaScriptSerializer jsonConverter;
         private readonly ISet<string> beingDownloaded;
 
-        private Dictionary<string, BetterTTVEmote> betterTTVGlobalEmotes;
-        private Dictionary<string, BetterTTVEmote> betterTTVChannelEmotes;
+        private Dictionary<string, NamedEmote> globalEmotes;
+        private Dictionary<string, NamedEmote> channelEmotes;
+
         private Dictionary<string, string> badgeDescriptions;
 
-        public class BetterTTVEmote
+        public class NamedEmote
         {
-            public string id;
             public string name;
             public FileEnding fileEnding;
             public string url;
+            public string path;
+            public string source;
         }
 
         public enum FileEnding { PNG, GIF }
@@ -62,15 +71,19 @@ namespace PluginTwitchChat
             badgeDescriptions = new Dictionary<string, string>();
 
             DownloadGlobalBadges();
-            betterTTVGlobalEmotes = GetBetterTTWEmotes(BetterTTVGlobalUrl);
-            betterTTVChannelEmotes = new Dictionary<string, BetterTTVEmote>();
+            globalEmotes = new Dictionary<string, NamedEmote>();
+            channelEmotes = new Dictionary<string, NamedEmote>();
+            AddBetterTTVEmotes(globalEmotes, BetterTTVGlobalUrl);
+            AddFrankerFacezEmotes(globalEmotes, FrankerFacezGlobalUrl);
         }
 
         public void SetChannel(string channel)
         {
             channel = channel.Replace("#", "");
-            var betterTTVurl = string.Format(BetterTTVChannelUrl, channel);
-            betterTTVChannelEmotes = GetBetterTTWEmotes(betterTTVurl);
+            channelEmotes = new Dictionary<string, NamedEmote>();
+
+            AddBetterTTVEmotes(channelEmotes, string.Format(BetterTTVChannelUrl, channel));
+            AddFrankerFacezEmotes(channelEmotes, string.Format(FrankerFacezChannelUrl, channel));
 
             var channelID = GetChannelID(channel);
 
@@ -81,16 +94,17 @@ namespace PluginTwitchChat
             DownloadBadges(url);
         }
 
-        public BetterTTVEmote GetBetterTTVEmote(string word)
+        public NamedEmote GetNamedEmote(string word)
         {
-            BetterTTVEmote emote = betterTTVGlobalEmotes.ContainsKey(word) ? betterTTVGlobalEmotes[word] :
-                              /**/ betterTTVChannelEmotes.ContainsKey(word) ? betterTTVChannelEmotes[word] :
-                              /**/ null;
+            NamedEmote emote =
+                channelEmotes.ContainsKey(word) ? channelEmotes[word] : 
+                globalEmotes.ContainsKey(word) ? globalEmotes[word] : 
+                null;
 
             if (emote == null)
                 return null;
 
-            emote.url = DownloadBetterTTVEmote(emote);
+            emote.path = DownloadImage(emote.url, emote.name, replaceExistingFile: false, fileEnding: emote.fileEnding);
             emote.name = CleanFileName(emote.name);
             return emote;
         }
@@ -125,13 +139,6 @@ namespace PluginTwitchChat
                 foreach (var viewer in chatters[type])
                     viewers.Add(viewer);
             return viewers;
-        }
-
-        private string DownloadBetterTTVEmote(BetterTTVEmote emote)
-        {
-            string quality = BetterTTVEmoteQuality(imageQuality);
-            var url = string.Format(BetterTTVEmoteUrl, emote.id, quality);
-            return DownloadImage(url, emote.name, replaceExistingFile: false, fileEnding: emote.fileEnding);
         }
 
         public string DownloadCheer(int roundedBits)
@@ -216,25 +223,28 @@ namespace PluginTwitchChat
             DownloadBadges(GlobalBadgesUrl);
         }
 
-        private Dictionary<string, BetterTTVEmote> GetBetterTTWEmotes(string url)
+        private void AddBetterTTVEmotes(Dictionary<string, NamedEmote> emotes, string url)
         {
-            Dictionary<string, BetterTTVEmote> emotes = new Dictionary<string, BetterTTVEmote>();
             string json = DownloadString(url);
 
             if (json == "")
-                return emotes;
+                return;
 
+            string quality = BetterTTVEmoteQuality(imageQuality);
             dynamic data = jsonConverter.DeserializeObject(json);
             try
             {
                 foreach (var e in data["emotes"])
                 {
-                    var code = e["code"];
-                    emotes[code] = new BetterTTVEmote
+                    var name = e["code"];
+                    var id = e["id"];
+
+                    emotes[name] = new NamedEmote
                     {
-                        id = e["id"],
-                        name = code,
-                        fileEnding = ParseEnum<FileEnding>(e["imageType"])
+                        name = name,
+                        url = string.Format(BetterTTVEmoteUrl, id, quality),
+                        fileEnding = ParseEnum<FileEnding>(e["imageType"]),
+                        source = "BetterTTV"
                     };
                 }
             }
@@ -242,7 +252,40 @@ namespace PluginTwitchChat
             {
                 API.Log(API.LogType.Warning, "Could not parse emote Json from BetterTTW: " + json);
             }
-            return emotes;
+        }
+
+        private void AddFrankerFacezEmotes(Dictionary<string, NamedEmote> emotes, string infoUrl)
+        {
+            string json = DownloadString(infoUrl);
+
+            if (json == "")
+                return;
+
+            var quality = FrankenFacezQuality(imageQuality);
+            dynamic data = jsonConverter.DeserializeObject(json);
+            try
+            {
+                foreach (var set in data["sets"])
+                {
+                    foreach (var emoticon in set.Value["emoticons"])
+                    {
+                        var name = emoticon["name"];
+                        var urls = emoticon["urls"];
+                        var url = urls.ContainsKey(quality) ? urls[quality] : urls[FrankenFacezQuality(1)];
+                        emotes[name] = new NamedEmote
+                        {
+                            name = name,
+                            url = "https:" + url,
+                            fileEnding = FileEnding.PNG,
+                            source = "FrankerFacez"
+                        };
+                    }
+                }
+            }
+            catch
+            {
+                API.Log(API.LogType.Warning, "Could not parse emote Json from FrankenFacez: " + json);
+            }
         }
 
         private T ParseEnum<T>(string value)
@@ -360,6 +403,16 @@ namespace PluginTwitchChat
         }
 
         private string CheerQuality(int imageQuality)
+        {
+            switch (imageQuality)
+            {
+                case 1: return "1";
+                case 2: return "2";
+                case 3: return "4";
+                default: return "";
+            }
+        }
+        private string FrankenFacezQuality(int imageQuality)
         {
             switch (imageQuality)
             {

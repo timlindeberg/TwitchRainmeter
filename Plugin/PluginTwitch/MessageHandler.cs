@@ -244,7 +244,7 @@ namespace PluginTwitchChat
 
             if (settings.UseBetterTTV)
             {
-                var betterTTVEmote = downloader.GetBetterTTVEmote(word);
+                var betterTTVEmote = downloader.GetNamedEmote(word);
                 if (betterTTVEmote != null)
                 {
                     words.Add(GetBetterTTVImage(betterTTVEmote));
@@ -255,14 +255,14 @@ namespace PluginTwitchChat
             words.Add(new Word(word));
         }
 
-        private Image GetBetterTTVImage(TwitchDownloader.BetterTTVEmote betterTTVEmote)
+        private Image GetBetterTTVImage(TwitchDownloader.NamedEmote namedEmote)
         {
-            var name = betterTTVEmote.name;
-            var displayName = name + " [ BetterTTV ]";
-            switch (betterTTVEmote.fileEnding)
+            var name = namedEmote.name;
+            var displayName = name + " [ " + namedEmote.source + " ]";
+            switch (namedEmote.fileEnding)
             {
                 case TwitchDownloader.FileEnding.PNG: return new Image(name, displayName, ImageString);
-                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, displayName, ImageString, betterTTVEmote.url, repeat: true);
+                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, displayName, ImageString, namedEmote.path, repeat: true);
                 default: return null;
             }
         }
