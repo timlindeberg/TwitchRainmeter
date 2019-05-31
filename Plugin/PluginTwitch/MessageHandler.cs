@@ -427,7 +427,6 @@ namespace PluginTwitchChat
         private string CalculateImageString()
         {
             var spaces = " ";
-            var size = measurer.MeasureString(spaces);
             double height = measurer.GetHeight("A");
             double width = measurer.GetWidth(spaces);
             double previousWidth = height;

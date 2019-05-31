@@ -59,6 +59,11 @@ namespace PluginTwitchChat
             return (obj as Line)._Text == _Text;
         }
 
+        public override int GetHashCode()
+        {
+            return _Text.GetHashCode();
+        }
+
         private string CalculateSpaceString(string url)
         {
             var spaceWidth = measurer.GetWidth(" ");

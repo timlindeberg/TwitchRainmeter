@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing.Imaging;
@@ -26,38 +27,75 @@ namespace PluginTwitchChat
         private long currentTime;
         private bool finished;
         private bool repeat;
+        private string path;
 
         private static Dictionary<string, List<int>> durationCache = new Dictionary<string, List<int>>();
 
         public AnimatedImage(string name, string displayName, string imageString, string path, bool repeat) : base(name, displayName, imageString)
         {
             this.repeat = repeat;
+            this.path = path;
             currentTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            durations = GetDurations(path);
+            SetDurations();
         }
 
-        private List<int> GetDurations(string path)
+        private void SetDurations()
         {
-            if (durationCache.ContainsKey(path))
-                return durationCache[path];
-
-            var durations = new List<int>();
-            using (var gif = System.Drawing.Image.FromFile(path))
+            if(durations != null)
             {
-                int frameCount = gif.GetFrameCount(FrameDimension.Time);
-                byte[] times = gif.GetPropertyItem(0x5100).Value;
-                for (int frame = 0; frame < frameCount; frame++)
-                {
-                    int duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
-                    durations.Add(duration);
-                }
+                return;
+            }
+            if (durationCache.ContainsKey(path))
+            {
+                durations = durationCache[path];
+                return;
+            }
+
+            try
+            {
+                durations = ReadDurations();
+            }
+            catch (System.IO.IOException)
+            {
+                return;
             }
             durationCache[path] = durations;
+        }
+
+        private List<int> ReadDurations()
+        {
+            var durations = new List<int>();
+
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                try
+                {
+                    using (var gif = System.Drawing.Image.FromStream(fs))
+                    {
+                        int frameCount = gif.GetFrameCount(FrameDimension.Time);
+                        byte[] times = gif.GetPropertyItem(0x5100).Value;
+                        for (int frame = 0; frame < frameCount; frame++)
+                        {
+                            int duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
+                            durations.Add(duration);
+                        }
+                    }
+                }
+                catch (System.ArgumentException)
+                {
+                    return null;
+                }
+            }
+
             return durations;
         }
 
         private void AdvanceFrameCounter()
         {
+            SetDurations();
+            if(durations == null)
+                return;
+
             long time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             while (currentTime + durations[frameIndex] < time && frameIndex < durations.Count - 1)
                 currentTime += durations[frameIndex++];
