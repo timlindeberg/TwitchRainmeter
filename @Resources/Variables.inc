@@ -4,7 +4,7 @@
 ;=============================================================================;
 
 ; The width of the skin including chat and input fields
-Width=600
+Width=1020
 
 ; If set to 1 the plugin will automatically connect to the twitch channel that
 ; is being focused by the browser. Set to 0 to disable this feature. If a
@@ -62,6 +62,10 @@ NumLinks=10
 ; quality and 3 is the highest. Larger text size might require higher image
 ; quality but for small text 1 should be enough.
 ImageQuality=2
+
+; The scale of the images. Between 0.0 and 1.0 where 1.0 means that they are as
+; tall as a line. 
+ImageScale=0.9
 
 ; A path to a directory where images will be downloaded. Must have read and 
 ; write access rights so don't put in e.g. Program Files where you need 
@@ -125,6 +129,16 @@ InputActiveBackgroundColor=2F2F2F
 ; Padding between the chat window and the input field
 InputPadding=5
 
+; The width of the border around the input field. Set to 0 for no border.
+InputBorderWidth=4
+
+; The color of the border around the input field.
+InputBorderColor=A7D2FBAA
+
+; The corner radius of the border around the input field. A higher number means
+; more rounding.
+InputBorderCornerRadius=5
+
 ;=============================================================================;
 ;------------------------------- Chat settings -------------------------------;
 ;=============================================================================;
@@ -148,7 +162,7 @@ ChatSelfFontColor=A7FBC3
 LinkColor=D0E8FE
 
 ; The height of the chat window.
-ChatHeight=660
+ChatHeight=800
 
 ;=============================================================================;
 ;------------------------------ Viewers Settings -----------------------------;
