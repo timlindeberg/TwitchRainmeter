@@ -13,10 +13,10 @@ namespace PluginTwitchChat
         public virtual string Name { get { return _name; } private set { _name = value; } }
         public string DisplayName;
 
-        public float X { get; set; }
-        public float Y { get; set; }
-        public float Width { get; set; }
-        public float Height { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
 
         public Image(string name, string displayName, string imageString) : base(imageString)
         {

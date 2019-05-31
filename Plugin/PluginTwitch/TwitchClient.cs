@@ -29,11 +29,7 @@ namespace PluginTwitchChat
         private readonly TwitchIrcClient senderClient;
         private readonly MessageHandler messageHandler;
         private readonly TwitchDownloader twitchDownloader;
-
-        private readonly string user;
-        private readonly string ouath;
-        private readonly int maxViewerNames;
-        private readonly long updateTime;
+        private readonly Settings settings;
 
         private Task updateChannelInfoTask;
         private bool isConnected;
@@ -45,14 +41,11 @@ namespace PluginTwitchChat
             client = new TwitchIrcClient();
             senderClient = new TwitchIrcClient();
             Channel = ChannelStatus = Viewers = "";
-            this.user = settings.User;
-            this.ouath = settings.Ouath;
-            this.updateTime = settings.ChannelUpdateTime;
-            this.maxViewerNames = settings.MaxViewerNames;
 
             this.messageHandler = messageHandler;
             this.twitchDownloader = imgDownloader;
-            
+            this.settings = settings;
+
             lastChannelUpdate = 0;
         }
 
@@ -65,7 +58,7 @@ namespace PluginTwitchChat
             client.Registered += ClientRegistered;
             // Wait until connection has succeeded or timed out.
             var waitTime = 2000;
-            var ircRegistrationInfo = new IrcUserRegistrationInfo() { NickName = user, Password = ouath, UserName = user };
+            var ircRegistrationInfo = new IrcUserRegistrationInfo() { NickName = settings.User, Password = settings.Ouath, UserName = settings.User };
             using (var registeredEvent = new ManualResetEventSlim(false))
             {
                 using (var connectedEvent = new ManualResetEventSlim(false))
@@ -125,11 +118,11 @@ namespace PluginTwitchChat
 
         public void Update()
         {
-            if (!IsInChannel || updateTime == -1)
+            if (!IsInChannel || settings.ChannelUpdateTime == -1)
                 return;
 
             var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            if (time < lastChannelUpdate + updateTime)
+            if (time < lastChannelUpdate + settings.ChannelUpdateTime)
                 return;
 
             lastChannelUpdate = time;
@@ -146,7 +139,7 @@ namespace PluginTwitchChat
                 var viewers = twitchDownloader.GetViewers(Channel);
                 ViewerCount = viewers.Count;
                 var sb = new StringBuilder();
-                for (int i = 0; i < maxViewerNames; i++)
+                for (int i = 0; i < Math.Min(ViewerCount, settings.MaxViewerNames); i++)
                     sb.AppendLine(viewers[i]);
                 Viewers = sb.ToString();
             });

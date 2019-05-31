@@ -20,6 +20,7 @@ namespace PluginTwitchChat
         public readonly int ChannelUpdateTime;
         public readonly int MaxViewerNames;
         public readonly int ImageQuality;
+        public readonly double ImageScale;
 
         public readonly bool UseSeperator;
         public readonly bool UseBetterTTV;
@@ -38,21 +39,27 @@ namespace PluginTwitchChat
             ChannelUpdateTime = api.ReadInt("ChannelUpdateTime", 0);
             MaxViewerNames = api.ReadInt("MaxViewerNames", 0);
             ImageQuality = Clamp(api.ReadInt("ImageQuality", 1), 1, 3);
+            ImageScale = Clamp(api.ReadDouble("ImageScale", 0.9), 0.0, 1.0);
 
             UseSeperator = api.ReadInt("UseSeperator", 1) == 1;
             UseBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
 
-            ErrorMessage = User == ""     ? "User name is missing in settings files UserSettings.inc." :
-                      /**/ Ouath == ""    ? "Ouath is missing in settings files UserSettings.inc." :
+            ErrorMessage = User == "" ? "User name is missing in settings files UserSettings.inc." :
+                      /**/ Ouath == "" ? "Ouath is missing in settings files UserSettings.inc." :
                       /**/ FontFace == "" ? "Missing FontFace setting in Variables.inc." :
                       /**/ ImageDir == "" ? "Missing ImageDir setting Variables.inc." :
-                      /**/ Width == 0     ? "Either Width setting in Variables.inc is missing or is zero." :
-                      /**/ Height == 0    ? "Either Height setting in Variables.inc is missing or is zero." :
-                      /**/ FontSize == 0  ? "Either FontSize setting in Variables.inc is missing or is zero." :
+                      /**/ Width == 0 ? "Either Width setting in Variables.inc is missing or is zero." :
+                      /**/ Height == 0 ? "Either Height setting in Variables.inc is missing or is zero." :
+                      /**/ FontSize == 0 ? "Either FontSize setting in Variables.inc is missing or is zero." :
                       /**/ null;
         }
 
         private int Clamp(int v, int min, int max)
+        {
+            return v < min ? min : v > max ? max : v;
+        }
+
+        private double Clamp(double v, double min, double max)
         {
             return v < min ? min : v > max ? max : v;
         }

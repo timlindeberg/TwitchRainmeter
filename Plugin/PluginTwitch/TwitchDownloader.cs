@@ -36,7 +36,6 @@ namespace PluginTwitchChat
 
         private readonly JavaScriptSerializer jsonConverter;
         private readonly ISet<string> beingDownloaded;
-        private readonly WebClient webClient;
 
         private Dictionary<string, BetterTTVEmote> betterTTVGlobalEmotes;
         private Dictionary<string, BetterTTVEmote> betterTTVChannelEmotes;
@@ -54,12 +53,11 @@ namespace PluginTwitchChat
 
         public TwitchDownloader(Settings settings)
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             imageQuality = settings.ImageQuality;
             imageDir = settings.ImageDir;
 
             jsonConverter = new JavaScriptSerializer();
-            webClient = new WebClient();
-            webClient.Headers["Client-ID"] = ClientID;
             beingDownloaded = new HashSet<string>();
             badgeDescriptions = new Dictionary<string, string>();
 
@@ -93,6 +91,7 @@ namespace PluginTwitchChat
                 return null;
 
             emote.url = DownloadBetterTTVEmote(emote);
+            emote.name = CleanFileName(emote.name);
             return emote;
         }
 
@@ -255,7 +254,7 @@ namespace PluginTwitchChat
         {
             try
             {
-                return webClient.DownloadString(url);
+                return CreateWebClient().DownloadString(url);
             }
             catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
             {
@@ -273,41 +272,41 @@ namespace PluginTwitchChat
 
         private string DownloadImage(string url, string fileName, bool replaceExistingFile, FileEnding fileEnding = FileEnding.PNG)
         {
+            fileName = CleanFileName(fileName);
             var path = GetFilePath(fileName, fileEnding);
 
             if (beingDownloaded.Contains(path))
                 return path;
 
+            if (File.Exists(path) && !replaceExistingFile)
+                return path;
+
             lock (beingDownloaded)
                 beingDownloaded.Add(fileName);
 
-            if (replaceExistingFile || !File.Exists(path))
+            Task.Run(() =>
             {
                 try
                 {
                     var uri = new Uri(url);
-                    switch (fileEnding)
-                    {
-                        case FileEnding.GIF: DownloadGif(uri, path, fileName); break;
-                        case FileEnding.PNG: webClient.DownloadFile(uri, path); break;
-                    }
+                    CreateWebClient().DownloadFile(uri, path);
+                    if (fileEnding == FileEnding.GIF)
+                        SplitGifFrames(path, fileName);
                 }
                 catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
                 {
                     API.Log(API.LogType.Warning, "Could not download image from " + url);
                 }
-            }
-
-            lock (beingDownloaded)
-                beingDownloaded.Remove(path);
+                lock (beingDownloaded)
+                    beingDownloaded.Remove(path);
+            });
 
             return path;
         }
 
-        private void DownloadGif(Uri uri, string path, string fileName)
+        private string CleanFileName(string fileName)
         {
-            webClient.DownloadFile(uri, path);
-            SplitGifFrames(path, fileName);
+            return Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), ((int)c).ToString()));
         }
 
         private void SplitGifFrames(string path, string name)
@@ -370,7 +369,14 @@ namespace PluginTwitchChat
                 default: return "";
             }
         }
-        
+
+        private WebClient CreateWebClient()
+        {
+            var webClient = new WebClient();
+            webClient.Headers["Client-ID"] = ClientID;
+            return webClient;
+        }
+
         private class BadgeInfo
         {
             public String Name { get; set; }
