@@ -275,11 +275,15 @@ namespace PluginTwitchChat
                 var newLen = measurer.GetWidth(newString);
 
                 var x = isEmpty ? len : len + spaceWidth;
+                var width = newLen - x;
                 if (word is Positioned)
                 {
                     var pos = word as Positioned;
-                    var width = newLen - x;
-                    pos.X = x + width * (1 - settings.ImageScale) / 2;
+                    pos.X = x;
+                    if(word is Image)
+                    {
+                        pos.X += width * (1 - settings.ImageScale) / 2;
+                    }
                 }
 
                 if (newLen <= settings.Width)
