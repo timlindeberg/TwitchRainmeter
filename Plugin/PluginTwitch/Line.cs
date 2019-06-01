@@ -12,7 +12,9 @@ namespace PluginTwitchChat
             get
             {
                 if (_Text.Length != sb.Length)
+                {
                     _Text = sb.ToString();
+                }
                 return _Text;
             }
         }
@@ -37,7 +39,9 @@ namespace PluginTwitchChat
         public void Add(Word w)
         {
             if (w is Positioned)
+            {
                 Positioned.Add(w as Positioned);
+            }
 
             string t = w is Link ? CalculateSpaceString(w) : w;
             sb.Append((sb.Length == 0) ? t : ' ' + t);
@@ -51,7 +55,9 @@ namespace PluginTwitchChat
         public override bool Equals(object obj)
         {
             if (!(obj is Line))
+            {
                 return false;
+            }
 
             return (obj as Line)._Text == _Text;
         }

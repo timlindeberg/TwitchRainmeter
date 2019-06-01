@@ -51,7 +51,9 @@ namespace PluginTwitchChat
             var imageWidth = measurer.GetWidth(ImageString);
             var imageHeight = measurer.GetHeight("A");
             if (settings.UseSeperator)
+            {
                 CalculateSeperator();
+            }
             ImageSize = new Size
             {
                 Width = Convert.ToInt32(settings.ImageScale * imageWidth),
@@ -63,12 +65,16 @@ namespace PluginTwitchChat
         public void Update()
         {
             if (msgQueue.Count == 0)
+            {
                 return;
+            }
 
             lock (msgQueue)
             {
                 while (msgQueue.Count > 0)
+                {
                     msgQueue.Dequeue().AddLines(this);
+                }
             }
 
             ResizeLineQueue();
@@ -78,7 +84,9 @@ namespace PluginTwitchChat
         public Image GetImage(int index)
         {
             if (index < 0 || index >= Images.Count)
+            {
                 return null;
+            }
 
             return Images[index];
         }
@@ -86,7 +94,9 @@ namespace PluginTwitchChat
         public AnimatedImage GetGif(int index)
         {
             if (index < 0 || index >= Gifs.Count)
+            {
                 return null;
+            }
 
             return Gifs[index];
         }
@@ -94,7 +104,9 @@ namespace PluginTwitchChat
         public Link GetLink(int index)
         {
             if (index < 0 || index >= Links.Count)
+            {
                 return null;
+            }
 
             return Links[index];
         }
@@ -117,18 +129,20 @@ namespace PluginTwitchChat
         {
             foreach (var line in lines)
             {
-                if (lastLine == Seperator && line == Seperator)
-                    continue;
-
-                lineQueue.Enqueue(line);
-                lastLine = line;
+                if (lastLine != Seperator || line != Seperator)
+                {
+                    lineQueue.Enqueue(line);
+                    lastLine = line;
+                }
             }
         }
 
         public void AddMessage(Message msg)
         {
             lock (msgQueue)
+            {
                 msgQueue.Enqueue(msg);
+            }
         }
 
         public List<Word> GetWords(string user, string msg, Tags tags)
@@ -180,7 +194,10 @@ namespace PluginTwitchChat
                 }
             }
             if (lastWord < msg.Length)
+            {
                 AddWord(words, msg, ref bits, lastWord, msg.Length - lastWord);
+            }
+
             return words;
         }
 
@@ -305,7 +322,9 @@ namespace PluginTwitchChat
             }
 
             if (!line.IsEmpty)
+            {
                 lines.Add(line);
+            }
 
             return lines;
         }
@@ -416,7 +435,6 @@ namespace PluginTwitchChat
         private string CalculateImageString()
         {
             var spaces = " ";
-            var size = measurer.MeasureString(spaces);
             double height = measurer.GetHeight("A");
             double width = measurer.GetWidth(spaces);
             double previousWidth = height;

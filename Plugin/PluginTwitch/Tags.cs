@@ -9,13 +9,17 @@ namespace PluginTwitchChat
         {
             tagMap = new Dictionary<string, string>();
             if (tags == null)
+            {
                 return;
+            }
 
             foreach (var pair in tags.Split(';'))
             {
                 var s = pair.Split('=');
                 if (s[1] != "")
+                {
                     tagMap[s[0]] = s[1];
+                }
             }
         }
 
@@ -59,7 +63,9 @@ namespace PluginTwitchChat
                 var emotes = new List<EmoteInfo>();
 
                 if (!tagMap.ContainsKey("emotes"))
+                {
                     return emotes;
+                }
 
                 foreach (var emote in tagMap["emotes"].Split('/'))
                 {

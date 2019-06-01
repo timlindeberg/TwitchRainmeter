@@ -20,7 +20,9 @@ namespace PluginTwitchChat
             get
             {
                 if (_URLBar == null)
+                {
                     _URLBar = GetURLBar();
+                }
                 return _URLBar;
             }
         }
@@ -36,25 +38,33 @@ namespace PluginTwitchChat
 
             // if we can't find the URLbar chrome changed their layout and even the automatic walk can't find it.
             if (URLBar == null)
+            {
                 return null;
+            }
 
             try
             {
                 // If the URLBar has focus the user might be typing and the URL is probably not valid
                 if ((bool)URLBar.GetCurrentPropertyValue(AutomationElement.HasKeyboardFocusProperty))
+                {
                     return null;
+                }
 
                 // there might not be a valid pattern to use, so we have to make sure we have one
                 AutomationPattern[] patterns = URLBar.GetSupportedPatterns();
                 if (patterns.Length != 1)
+                {
                     return null;
+                }
 
                 string ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
 
 
                 // must match a domain name (and possibly "https://" in front)
                 if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
+                {
                     return null;
+                }
 
                 return ret;
             }
@@ -74,14 +84,20 @@ namespace PluginTwitchChat
         {
             var mainChrome = GetMainChromeElement();
             if (mainChrome == null)
+            {
                 return null;
+            }
 
             AutomationElement bar = null;
             if (!ManualWalkFailed)
+            {
                 bar = ManualWalk(mainChrome);
+            }
 
             if (bar != null)
+            {
                 return bar;
+            }
 
             ManualWalkFailed = true;
             return AutomaticWalk(mainChrome);
@@ -93,14 +109,18 @@ namespace PluginTwitchChat
             {
                 // the chrome process must have a window
                 if (chrome.MainWindowHandle == IntPtr.Zero)
+                {
                     continue;
+                }
 
                 // find the automation element
                 AutomationElement elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
 
                 var chromeMain = elm.FindFirst(TreeScope.Children, propertyNameChrome);
                 if (chromeMain == null)
+                {
                     continue; // not the right chrome.exe
+                }
 
                 return chromeMain;
             }
@@ -121,7 +141,6 @@ namespace PluginTwitchChat
             }
             catch
             {
-                // Walk failed
                 API.Log(API.LogType.Warning, "Manual walk to find URL Bar in Chrome failed!");
                 return null;
             }

@@ -16,17 +16,18 @@ namespace PluginTwitchChat
             {
                 var s = GetActiveUrl();
                 if (s == null)
+                {
                     return null;
+                }
 
                 var matchGroups = twitchChannelRegex.Match(s).Groups;
                 if (matchGroups.Count < 2)
+                {
                     return null;
+                }
 
                 var ch = matchGroups[1].Value;
-                if (NotAChannel(ch))
-                    return null;
-
-                return "#" + ch;
+                return NotAChannel(ch) ? null : "#" + ch;
             }
         }
 

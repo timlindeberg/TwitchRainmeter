@@ -43,7 +43,9 @@ namespace PluginTwitchChat
         public void Connect()
         {
             if (isConnected)
+            {
                 return;
+            }
 
             client.FloodPreventer = new IrcStandardFloodPreventer(4, 2000);
             client.Registered += ClientRegistered;
@@ -78,7 +80,9 @@ namespace PluginTwitchChat
         public void JoinChannel(string newChannel)
         {
             if (newChannel == Channel)
+            {
                 return;
+            }
 
             Connect();
             LeaveChannel();
@@ -90,7 +94,9 @@ namespace PluginTwitchChat
         public void LeaveChannel()
         {
             if (!isConnected || Channel == "")
+            {
                 return;
+            }
 
             client.Channels.Leave(Channel);
             messageHandler.Reset();
@@ -100,7 +106,9 @@ namespace PluginTwitchChat
         public void Disconnect()
         {
             if (!isConnected)
+            {
                 return;
+            }
 
             client.Disconnect();
             senderClient.Disconnect();
@@ -110,11 +118,15 @@ namespace PluginTwitchChat
         public void Update()
         {
             if (!IsInChannel || settings.ChannelUpdateTime == -1)
+            {
                 return;
+            }
 
             var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             if (time < lastChannelUpdate + settings.ChannelUpdateTime)
+            {
                 return;
+            }
 
             lastChannelUpdate = time;
             if (updateChannelInfoTask == null || updateChannelInfoTask.IsCompleted)
@@ -131,7 +143,10 @@ namespace PluginTwitchChat
                 ViewerCount = viewers.Count;
                 var sb = new StringBuilder();
                 for (int i = 0; i < Math.Min(ViewerCount, settings.MaxViewerNames); i++)
+                {
                     sb.AppendLine(viewers[i]);
+                }
+
                 Viewers = sb.ToString();
             });
         }
@@ -180,9 +195,13 @@ namespace PluginTwitchChat
         private void ChannelMessageReceived(object sender, IrcMessageEventArgs e)
         {
             if (e.Source.Name == "twitchnotify")
+            {
                 messageHandler.AddMessage(new Notice(e.Text));
+            }
             else
+            {
                 messageHandler.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
+            }
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)

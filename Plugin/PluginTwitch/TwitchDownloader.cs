@@ -42,7 +42,6 @@ namespace PluginTwitchChat
 
         private Dictionary<string, string> badgeDescriptions;
 
-
         public class NamedEmote
         {
             public string Name;
@@ -93,7 +92,9 @@ namespace PluginTwitchChat
             var channelID = GetChannelID(channel);
 
             if (channelID == -1)
+            {
                 return;
+            }
 
             var url = string.Format(ChannelBadgesUrl, channelID);
             DownloadBadges(url);
@@ -107,7 +108,9 @@ namespace PluginTwitchChat
                 null;
 
             if (emote == null)
+            {
                 return null;
+            }
 
             emote.Path = DownloadImage(emote.Url, emote.Name, replaceExistingFile: false, fileEnding: emote.FileEnding);
             emote.Name = CleanFileName(emote.Name);
@@ -136,13 +139,17 @@ namespace PluginTwitchChat
             string json = DownloadString(url);
 
             if (json == string.Empty)
+            {
                 return viewers;
+            }
 
             dynamic data = jsonConverter.DeserializeObject(json);
             var chatters = data["chatters"];
             foreach (var type in ViewerTypes)
-                foreach (var viewer in chatters[type])
-                    viewers.Add(viewer);
+            {
+                viewers.AddRange(chatters[type]);
+            }
+
             return viewers;
         }
 
@@ -185,7 +192,9 @@ namespace PluginTwitchChat
             var url = string.Format(ChannelUrl, channel);
             string json = DownloadString(url);
             if (json == string.Empty)
+            {
                 return null;
+            }
 
             return jsonConverter.DeserializeObject(json);
         }
@@ -195,7 +204,9 @@ namespace PluginTwitchChat
             List<BadgeInfo> urls = new List<BadgeInfo>();
             string json = DownloadString(badgeUrl);
             if (json == "")
+            {
                 return urls;
+            }
 
             dynamic data = jsonConverter.DeserializeObject(json);
             try
@@ -231,12 +242,16 @@ namespace PluginTwitchChat
         private void AddBetterTTVEmotes(Dictionary<string, NamedEmote> emotes, string url)
         {
             if (!settings.UseBetterTTV)
+            {
                 return;
+            }
 
             string json = DownloadString(url);
 
             if (json == "")
+            {
                 return;
+            }
 
             string quality = BetterTTVEmoteQuality();
             dynamic data = jsonConverter.DeserializeObject(json);
@@ -265,12 +280,16 @@ namespace PluginTwitchChat
         private void AddFrankerFacezEmotes(Dictionary<string, NamedEmote> emotes, string infoUrl)
         {
             if (!settings.UseFrankerFacez)
+            {
                 return;
+            }
 
             string json = DownloadString(infoUrl);
 
             if (json == "")
+            {
                 return;
+            }
 
             var quality = FrankenFacezQuality(settings.ImageQuality);
             dynamic data = jsonConverter.DeserializeObject(json);
@@ -337,13 +356,19 @@ namespace PluginTwitchChat
             var path = GetFilePath(fileName, fileEnding);
 
             if (beingDownloaded.Contains(path))
+            {
                 return path;
+            }
 
             if (File.Exists(path) && !replaceExistingFile)
+            {
                 return path;
+            }
 
             lock (beingDownloaded)
+            {
                 beingDownloaded.Add(fileName);
+            }
 
             Task.Run(() =>
             {
@@ -359,7 +384,9 @@ namespace PluginTwitchChat
                     API.Log(API.LogType.Warning, "Could not download image from " + url);
                 }
                 lock (beingDownloaded)
+                {
                     beingDownloaded.Remove(path);
+                }
             });
 
             return path;
@@ -379,7 +406,10 @@ namespace PluginTwitchChat
                 {
                     var fileName = GetFilePath(name, frame: frame);
                     using (var bmp = new Bitmap(gif))
+                    {
                         bmp.Save(fileName);
+                    }
+
                     if (++frame >= frameCount) break;
                     gif.SelectActiveFrame(FrameDimension.Time, frame);
                 }

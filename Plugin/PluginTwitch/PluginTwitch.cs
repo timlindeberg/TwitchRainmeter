@@ -21,7 +21,6 @@ namespace PluginTwitchChat
 
         internal void Reload(API api, ref double maxValue)
         {
-            API.Log(API.LogType.Debug, "LOL");
             tpe = api.ReadString("Type", "");
             switch (tpe)
             {
@@ -40,7 +39,9 @@ namespace PluginTwitchChat
         internal void ReloadAutoConnector(API api)
         {
             if (api.ReadDouble("ConnectAutomatically", 0.0) != 1.0)
+            {
                 return;
+            }
 
             if (urlLocator == null)
             {
@@ -55,13 +56,17 @@ namespace PluginTwitchChat
             }
             var channel = urlLocator.TwitchChannel;
             if (channel != null)
+            {
                 twitchClient?.JoinChannel(channel);
+            }
         }
 
         internal void ReloadMain(API api)
         {
             if (twitchClient != null)
+            {
                 return;
+            }
 
             var settings = new Settings(api);
 
@@ -81,7 +86,9 @@ namespace PluginTwitchChat
         internal void Cleanup()
         {
             if (tpe != "Main")
+            {
                 return;
+            }
 
             twitchClient?.Disconnect();
             twitchClient = null;
@@ -90,10 +97,7 @@ namespace PluginTwitchChat
 
         internal double Update()
         {
-            if (twitchClient == null)
-                return 0.0;
-
-            return update();
+            return twitchClient == null ? 0.0 : update();
         }
 
         internal Func<double> GetUpdateFunction()
@@ -135,13 +139,20 @@ namespace PluginTwitchChat
             }
 
             var info = GetInfo(MeasureInfo.Image);
-            if (info != null) return GetImageUpdateFunction(info);
-
+            if (info != null)
+            {
+                return GetImageUpdateFunction(info);
+            }
             info = GetInfo(MeasureInfo.Gif);
-            if (info != null) return GetGifUpdateFunction(info);
-
+            if (info != null)
+            {
+                return GetGifUpdateFunction(info);
+            }
             info = GetInfo(MeasureInfo.Link);
-            if (info != null) return GetLinkUpdateFunction(info);
+            if (info != null)
+            {
+                return GetLinkUpdateFunction(info);
+            }
 
             return () => { return 0.0; };
         }
@@ -226,7 +237,9 @@ namespace PluginTwitchChat
         internal void ExecuteBang(string args)
         {
             if (twitchClient == null || tpe != "Main")
+            {
                 return;
+            }
 
             if (args.StartsWith("SendMessage"))
             {
@@ -245,10 +258,14 @@ namespace PluginTwitchChat
                 }
 
                 if (channel.IndexOfAny(new[] { ' ', ',', ':' }) != -1)
+                {
                     return;
+                }
 
                 if (!channel.StartsWith("#"))
+                {
                     channel = "#" + channel;
+                }
 
                 twitchClient.JoinChannel(channel);
             }
@@ -270,12 +287,16 @@ namespace PluginTwitchChat
             var match = regex.Match(tpe).Groups;
 
             if (match.Count < 2)
+            {
                 return null;
+            }
 
             var type = match[1].Value;
             var index = -1;
             if (match.Count >= 3 && match[2].Value != string.Empty)
+            {
                 index = int.Parse(match[2].Value);
+            }
 
             return new MeasureInfo() { Type = type, Index = index };
         }

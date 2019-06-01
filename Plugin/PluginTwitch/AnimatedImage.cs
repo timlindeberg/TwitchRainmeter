@@ -12,7 +12,9 @@ namespace PluginTwitchChat
             get
             {
                 if (!finished)
+                {
                     AdvanceFrameCounter();
+                }
                 return string.Format("{0}-{1}", _name, frameIndex);
             }
         }
@@ -89,18 +91,26 @@ namespace PluginTwitchChat
         {
             SetDurations();
             if (durations == null)
+            {
                 return;
+            }
 
             long time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             while (currentTime + durations[frameIndex] < time && frameIndex < durations.Count - 1)
+            {
                 currentTime += durations[frameIndex++];
+            }
 
             if (frameIndex >= durations.Count - 1)
             {
                 if (repeat)
+                {
                     frameIndex = 0;
+                }
                 else
+                {
                     finished = true;
+                }
             }
         }
     }
