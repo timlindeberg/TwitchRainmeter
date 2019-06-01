@@ -5,7 +5,7 @@ namespace PluginTwitchChat
 {
     public class Line
     {
-        public List<Positioned> Positioned;
+        public List<IPositioned> Positioned;
         private string _Text;
         public string Text
         {
@@ -28,23 +28,23 @@ namespace PluginTwitchChat
             _Text = string.Empty;
             sb = new StringBuilder();
             this.measurer = measurer;
-            Positioned = new List<Positioned>();
+            Positioned = new List<IPositioned>();
         }
 
-        public void Add(string s)
+        public void Add(string word)
         {
-            Add(new Word(s));
+            Add(new Word(word));
         }
 
-        public void Add(Word w)
+        public void Add(Word word)
         {
-            if (w is Positioned)
+            if (word is IPositioned)
             {
-                Positioned.Add(w as Positioned);
+                Positioned.Add(word as IPositioned);
             }
 
-            string t = w is Link ? CalculateSpaceString(w) : w;
-            sb.Append((sb.Length == 0) ? t : ' ' + t);
+            var wordString = word is Link ? CalculateSpaceString(word) : word;
+            sb.Append((sb.Length == 0) ? wordString : ' ' + wordString);
         }
 
         public override string ToString()

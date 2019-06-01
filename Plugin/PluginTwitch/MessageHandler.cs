@@ -22,7 +22,6 @@ namespace PluginTwitchChat
         private static readonly Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
         private static readonly Regex CheerRegex = new Regex(@"(?:^|\s)cheer(\d+)(?:\s|$)");
 
-
         private readonly TwitchDownloader downloader;
         private readonly StringMeasurer measurer;
 
@@ -30,7 +29,7 @@ namespace PluginTwitchChat
 
         private Line lastLine;
         private Queue<Line> lineQueue;
-        private Queue<Message> msgQueue;
+        private Queue<IMessage> msgQueue;
 
         private readonly float spaceWidth;
 
@@ -41,7 +40,7 @@ namespace PluginTwitchChat
             this.settings = settings;
 
             lineQueue = new Queue<Line>();
-            msgQueue = new Queue<Message>();
+            msgQueue = new Queue<IMessage>();
             Images = new List<Image>();
             Gifs = new List<AnimatedImage>();
             Links = new List<Link>();
@@ -117,7 +116,7 @@ namespace PluginTwitchChat
             Links = new List<Link>();
             String = "";
             lineQueue = new Queue<Line>();
-            msgQueue = new Queue<Message>();
+            msgQueue = new Queue<IMessage>();
         }
 
         public void AddSeperator(List<Line> lines)
@@ -137,7 +136,7 @@ namespace PluginTwitchChat
             }
         }
 
-        public void AddMessage(Message msg)
+        public void AddMessage(IMessage msg)
         {
             lock (msgQueue)
             {
@@ -168,7 +167,7 @@ namespace PluginTwitchChat
         {
             var emoteIndex = 0;
             var lastWord = 0;
-            List<Word> words = new List<Word>();
+            var words = new List<Word>();
             for (int pos = 0; pos < msg.Length; pos++)
             {
                 if (emotes != null && emoteIndex < emotes.Count)
@@ -280,17 +279,17 @@ namespace PluginTwitchChat
             var line = new Line(measurer);
             for (int i = 0; i < words.Count; i++)
             {
-                bool isEmpty = line.Text == string.Empty;
+                var isEmpty = line.Text == string.Empty;
                 var word = words[i];
 
-                string newString = isEmpty ? word : (line.Text + ' ' + word);
+                var newString = isEmpty ? word : (line.Text + ' ' + word);
                 var newLen = measurer.GetWidth(newString);
 
                 var x = isEmpty ? len : len + spaceWidth;
                 var width = newLen - x;
-                if (word is Positioned)
+                if (word is IPositioned)
                 {
-                    var pos = word as Positioned;
+                    var pos = word as IPositioned;
                     pos.X = x;
                     if (word is Image)
                     {
@@ -331,7 +330,7 @@ namespace PluginTwitchChat
 
         private Tuple<Word, Word> SplitWord(Word word, int start, string newString)
         {
-            int breakPoint = FindBreakpoint(newString);
+            var breakPoint = FindBreakpoint(newString);
             var s1 = newString.Substring(start, breakPoint - start);
             var s2 = newString.Substring(breakPoint, newString.Length - breakPoint);
             if (!(word is Link))
@@ -345,11 +344,11 @@ namespace PluginTwitchChat
 
         private int FindBreakpoint(string str)
         {
-            int start = 1;
-            int end = str.Length;
+            var start = 1;
+            var end = str.Length;
             while (start < end)
             {
-                int mid = (end + start) / 2;
+                var mid = (end + start) / 2;
                 var wordLen = measurer.GetWidth(str.Substring(0, mid));
                 if (wordLen <= settings.Width)
                     start = mid + 1;
@@ -362,7 +361,7 @@ namespace PluginTwitchChat
         // Resize the line queue to fit the maximum height
         private void ResizeLineQueue()
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             foreach (var line in lineQueue.ToList())
             {
                 sb.AppendLine(line.Text);
@@ -381,7 +380,7 @@ namespace PluginTwitchChat
         {
             var sb = new StringBuilder();
 
-            var positioned = new List<Positioned>();
+            var positioned = new List<IPositioned>();
             var currentHeight = 0.0;
             foreach (var line in lineQueue)
             {
@@ -400,7 +399,7 @@ namespace PluginTwitchChat
             UpdatePositionedVars(positioned);
         }
 
-        private void UpdatePositionedVars(List<Positioned> positioned)
+        private void UpdatePositionedVars(List<IPositioned> positioned)
         {
             Images = new List<Image>();
             Gifs = new List<AnimatedImage>();
@@ -408,11 +407,17 @@ namespace PluginTwitchChat
             foreach (var pos in positioned)
             {
                 if (pos is AnimatedImage)
+                {
                     Gifs.Add(pos as AnimatedImage);
+                }
                 else if (pos is Image)
+                {
                     Images.Add(pos as Image);
+                }
                 else if (pos is Link)
+                {
                     Links.Add(pos as Link);
+                }
             }
         }
 
@@ -435,9 +440,9 @@ namespace PluginTwitchChat
         private string CalculateImageString()
         {
             var spaces = " ";
-            double height = measurer.GetHeight("A");
-            double width = measurer.GetWidth(spaces);
-            double previousWidth = height;
+            var height = measurer.GetHeight("A");
+            var width = measurer.GetWidth(spaces);
+            var previousWidth = height;
             while (width < height)
             {
                 spaces += " ";

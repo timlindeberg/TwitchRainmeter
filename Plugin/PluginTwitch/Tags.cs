@@ -61,7 +61,6 @@ namespace PluginTwitchChat
             get
             {
                 var emotes = new List<EmoteInfo>();
-
                 if (!tagMap.ContainsKey("emotes"))
                 {
                     return emotes;

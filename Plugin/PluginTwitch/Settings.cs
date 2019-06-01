@@ -41,13 +41,13 @@ namespace PluginTwitchChat
             UseBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
             UseFrankerFacez = api.ReadInt("UseFrankerFacezEmotes", 1) == 1;
 
-            ErrorMessage = User == "" /*    */ ? "User name is missing in settings files UserSettings.inc." :
-                      /**/ Ouath == "" /*   */ ? "Ouath is missing in settings files UserSettings.inc." :
-                      /**/ FontFace == "" /**/ ? "Missing FontFace setting in Variables.inc." :
-                      /**/ ImageDir == "" /**/ ? "Missing ImageDir setting Variables.inc." :
-                      /**/ Width == 0 /*    */ ? "Either Width setting in Variables.inc is missing or is zero." :
-                      /**/ Height == 0 /*   */ ? "Either Height setting in Variables.inc is missing or is zero." :
-                      /**/ FontSize == 0 /* */ ? "Either FontSize setting in Variables.inc is missing or is zero." :
+            ErrorMessage = User == "" ? "User name is missing in settings files UserSettings.inc." :
+                      /**/ Ouath == "" ? "Ouath is missing in settings files UserSettings.inc." :
+                      /**/ FontFace == "" ? "Missing FontFace setting in Variables.inc." :
+                      /**/ ImageDir == "" ? "Missing ImageDir setting Variables.inc." :
+                      /**/ Width == 0 ? "Either Width setting in Variables.inc is missing or is zero." :
+                      /**/ Height == 0 ? "Either Height setting in Variables.inc is missing or is zero." :
+                      /**/ FontSize == 0 ? "Either FontSize setting in Variables.inc is missing or is zero." :
                       /**/ null;
         }
 

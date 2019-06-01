@@ -102,7 +102,7 @@ namespace PluginTwitchChat
 
         public NamedEmote GetNamedEmote(string word)
         {
-            NamedEmote emote =
+            var emote =
                 channelEmotes.ContainsKey(word) ? channelEmotes[word] :
                 globalEmotes.ContainsKey(word) ? globalEmotes[word] :
                 null;
@@ -119,7 +119,7 @@ namespace PluginTwitchChat
 
         public string DownloadEmote(string id)
         {
-            string quality = EmoteQuality();
+            var quality = EmoteQuality();
             var url = string.Format(EmoteUrl, id, quality);
             return DownloadImage(url, id, replaceExistingFile: false);
         }
@@ -132,11 +132,11 @@ namespace PluginTwitchChat
 
         public List<string> GetViewers(string channel)
         {
-            List<string> viewers = new List<string>();
+            var viewers = new List<string>();
 
             channel = channel.Replace("#", "");
             var url = string.Format(ChattersUrl, channel);
-            string json = DownloadString(url);
+            var json = DownloadString(url);
 
             if (json == string.Empty)
             {
@@ -144,10 +144,17 @@ namespace PluginTwitchChat
             }
 
             dynamic data = jsonConverter.DeserializeObject(json);
-            var chatters = data["chatters"];
-            foreach (var type in ViewerTypes)
+            try
             {
-                viewers.AddRange(chatters[type]);
+                var chatters = data["chatters"];
+                foreach (var type in ViewerTypes)
+                {
+                    viewers.AddRange(chatters[type]);
+                }
+            }
+            catch
+            {
+                API.Log(API.LogType.Warning, "Could not parse viewers Json from Twitch: " + json);
             }
 
             return viewers;
@@ -190,7 +197,7 @@ namespace PluginTwitchChat
         {
             channel = channel.Replace("#", "");
             var url = string.Format(ChannelUrl, channel);
-            string json = DownloadString(url);
+            var json = DownloadString(url);
             if (json == string.Empty)
             {
                 return null;
@@ -201,8 +208,8 @@ namespace PluginTwitchChat
 
         private List<BadgeInfo> GetBadgeInfo(string badgeUrl)
         {
-            List<BadgeInfo> urls = new List<BadgeInfo>();
-            string json = DownloadString(badgeUrl);
+            var urls = new List<BadgeInfo>();
+            var json = DownloadString(badgeUrl);
             if (json == "")
             {
                 return urls;
@@ -211,17 +218,15 @@ namespace PluginTwitchChat
             dynamic data = jsonConverter.DeserializeObject(json);
             try
             {
-                foreach (var kv1 in data["badge_sets"])
+                foreach (var badgeSet in data["badge_sets"])
                 {
-                    var name = kv1.Key;
-                    var v1 = kv1.Value;
-                    var versions = v1["versions"];
-                    foreach (var kv2 in versions)
+                    var name = badgeSet.Key;
+                    foreach (var entry in badgeSet.Value["versions"])
                     {
-                        var version = kv2.Key;
-                        var v2 = kv2.Value;
-                        string url = v2[BadgeQuality(settings.ImageQuality)] ?? v2[BadgeQuality(1)];
-                        string description = v2["description"];
+                        var version = entry.Key;
+                        var value = entry.Value;
+                        var url = value[BadgeQuality(settings.ImageQuality)] ?? value[BadgeQuality(1)];
+                        var description = value["description"];
                         urls.Add(new BadgeInfo
                         {
                             Name = name + version,
@@ -246,27 +251,26 @@ namespace PluginTwitchChat
                 return;
             }
 
-            string json = DownloadString(url);
-
+            var json = DownloadString(url);
             if (json == "")
             {
                 return;
             }
 
-            string quality = BetterTTVEmoteQuality();
+            var quality = BetterTTVEmoteQuality();
             dynamic data = jsonConverter.DeserializeObject(json);
             try
             {
-                foreach (var e in data["emotes"])
+                foreach (var emote in data["emotes"])
                 {
-                    var name = e["code"];
-                    var id = e["id"];
+                    var name = emote["code"];
+                    var id = emote["id"];
 
                     emotes[name] = new NamedEmote
                     {
                         Name = name,
                         Url = string.Format(BetterTTVEmoteUrl, id, quality),
-                        FileEnding = ParseEnum<FileEnding>(e["imageType"]),
+                        FileEnding = ParseEnum<FileEnding>(emote["imageType"]),
                         Source = "BetterTTV"
                     };
                 }
@@ -284,8 +288,7 @@ namespace PluginTwitchChat
                 return;
             }
 
-            string json = DownloadString(infoUrl);
-
+            var json = DownloadString(infoUrl);
             if (json == "")
             {
                 return;
@@ -316,11 +319,6 @@ namespace PluginTwitchChat
             {
                 API.Log(API.LogType.Warning, "Could not parse emote Json from FrankenFacez: " + json);
             }
-        }
-
-        private T ParseEnum<T>(string value)
-        {
-            return (T)Enum.Parse(typeof(T), value, ignoreCase: true);
         }
 
         private WebClient CreateWebClient()
@@ -377,7 +375,9 @@ namespace PluginTwitchChat
                     var uri = new Uri(url);
                     CreateWebClient().DownloadFile(uri, path);
                     if (fileEnding == FileEnding.GIF)
+                    {
                         SplitGifFrames(path, fileName);
+                    }
                 }
                 catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
                 {
@@ -401,7 +401,7 @@ namespace PluginTwitchChat
         {
             using (var gif = System.Drawing.Image.FromFile(path))
             {
-                int frameCount = gif.GetFrameCount(FrameDimension.Time);
+                var frameCount = gif.GetFrameCount(FrameDimension.Time);
                 for (int frame = 0; ;)
                 {
                     var fileName = GetFilePath(name, frame: frame);
@@ -410,7 +410,11 @@ namespace PluginTwitchChat
                         bmp.Save(fileName);
                     }
 
-                    if (++frame >= frameCount) break;
+                    if (++frame >= frameCount)
+                    {
+                        break;
+                    }
+
                     gif.SelectActiveFrame(FrameDimension.Time, frame);
                 }
             }
@@ -469,6 +473,11 @@ namespace PluginTwitchChat
                 case 3: return "4";
                 default: return "";
             }
+        }
+
+        private T ParseEnum<T>(string value)
+        {
+            return (T)Enum.Parse(typeof(T), value, ignoreCase: true);
         }
     }
 }

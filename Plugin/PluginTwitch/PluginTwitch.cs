@@ -10,19 +10,19 @@ namespace PluginTwitchChat
     {
         static readonly string MissingImage = "_empty";
 
-        static TwitchClient twitchClient = null;
-        static MessageHandler messageHandler = null;
-        static WebBrowserURLLocator urlLocator = null;
-        static StringMeasurer stringMeasurer = null;
+        static TwitchClient TwitchClient = null;
+        static MessageHandler MessageHandler = null;
+        static WebBrowserURLLocator UrlLocator = null;
+        static StringMeasurer StringMeasurer = null;
 
         string StringValue;
-        string tpe = "";
+        string measureType = "";
         Func<double> update;
 
         internal void Reload(API api, ref double maxValue)
         {
-            tpe = api.ReadString("Type", "");
-            switch (tpe)
+            measureType = api.ReadString("Type", "");
+            switch (measureType)
             {
                 case "Main":
                     StringValue = "";
@@ -43,27 +43,27 @@ namespace PluginTwitchChat
                 return;
             }
 
-            if (urlLocator == null)
+            if (UrlLocator == null)
             {
-                string webBrowser = api.ReadString("Browser", "").ToLower();
+                var webBrowser = api.ReadString("Browser", "").ToLower();
                 switch (webBrowser)
                 {
                     case "chrome":
-                        urlLocator = new ChromeURLLocator();
+                        UrlLocator = new ChromeURLLocator();
                         break;
                     default: return; // TODO: Support other browsers
                 }
             }
-            var channel = urlLocator.TwitchChannel;
+            var channel = UrlLocator.TwitchChannel;
             if (channel != null)
             {
-                twitchClient?.JoinChannel(channel);
+                TwitchClient?.JoinChannel(channel);
             }
         }
 
         internal void ReloadMain(API api)
         {
-            if (twitchClient != null)
+            if (TwitchClient != null)
             {
                 return;
             }
@@ -78,64 +78,54 @@ namespace PluginTwitchChat
 
             var font = new Font(settings.FontFace, settings.FontSize);
             var twitchDownloader = new TwitchDownloader(settings);
-            stringMeasurer = new StringMeasurer(font);
-            messageHandler = new MessageHandler(settings, stringMeasurer, twitchDownloader);
-            twitchClient = new TwitchClient(settings, messageHandler, twitchDownloader);
+            StringMeasurer = new StringMeasurer(font);
+            MessageHandler = new MessageHandler(settings, StringMeasurer, twitchDownloader);
+            TwitchClient = new TwitchClient(settings, MessageHandler, twitchDownloader);
         }
 
         internal void Cleanup()
         {
-            if (tpe != "Main")
+            if (measureType != "Main")
             {
                 return;
             }
 
-            twitchClient?.Disconnect();
-            twitchClient = null;
-            stringMeasurer?.Dispose();
+            TwitchClient?.Disconnect();
+            TwitchClient = null;
+            StringMeasurer?.Dispose();
         }
 
         internal double Update()
         {
-            return twitchClient == null ? 0.0 : update();
+            return TwitchClient == null ? 0.0 : update();
+        }
+
+        internal Func<double> StringValueSetter(Func<string> f)
+        {
+            StringValue = "";
+            return () =>
+            {
+                StringValue = f();
+                return 0.0;
+            };
         }
 
         internal Func<double> GetUpdateFunction()
         {
-            switch (tpe)
+            switch (measureType)
             {
-                case "ChannelName":
-                    StringValue = "";
-                    return () =>
-                    {
-                        StringValue = twitchClient.IsInChannel ? twitchClient.Channel : "";
-                        return 0.0;
-                    };
-                case "ChannelStatus":
-                    StringValue = "";
-                    return () =>
-                    {
-                        StringValue = twitchClient.IsInChannel ? twitchClient.ChannelStatus : "";
-                        return 0.0;
-                    };
-                case "Viewers":
-                    StringValue = "";
-                    return () =>
-                    {
-                        StringValue = twitchClient.IsInChannel ? twitchClient.Viewers : "";
-                        return 0.0;
-                    };
-                case "ViewerCount":
-                    return () => { return twitchClient.ViewerCount; };
+                case "ChannelName": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel : "");
+                case "ChannelStatus": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.ChannelStatus : "");
+                case "Viewers": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers : "");
+                case "ViewerCount": return () => { return TwitchClient.ViewerCount; };
+                case "IsInChannel": return () => { return TwitchClient.IsInChannel ? 1.0 : 0.0; };
                 case "Main":
-                    return () =>
+                    return StringValueSetter(() =>
                     {
-                        twitchClient.Update();
-                        messageHandler.Update();
-                        StringValue = messageHandler.String;
-                        return 0.0;
-                    };
-                case "IsInChannel": return () => { return twitchClient.IsInChannel ? 1.0 : 0.0; };
+                        TwitchClient.Update();
+                        MessageHandler.Update();
+                        return MessageHandler.String;
+                    });
             }
 
             var info = GetInfo(MeasureInfo.Image);
@@ -159,29 +149,15 @@ namespace PluginTwitchChat
 
         internal Func<double> GetImageUpdateFunction(MeasureInfo info)
         {
-            switch (info.Type)
-            {
-                case "Width": return () => { return messageHandler.ImageSize.Width; };
-                case "Height": return () => { return messageHandler.ImageSize.Height; };
-            }
-
             var i = info.Index;
             switch (info.Type)
             {
-                case "X": return () => { return messageHandler.GetImage(i)?.X ?? 0.0; };
-                case "Y": return () => { return messageHandler.GetImage(i)?.Y ?? 0.0; };
-                case "Name":
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetImage(i)?.Name ?? MissingImage;
-                        return 0.0;
-                    };
-                case "ToolTip":
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetImage(i)?.DisplayName ?? MissingImage;
-                        return 0.0;
-                    };
+                case "Width": return () => { return MessageHandler.ImageSize.Width; };
+                case "Height": return () => { return MessageHandler.ImageSize.Height; };
+                case "X": return () => { return MessageHandler.GetImage(i)?.X ?? 0.0; };
+                case "Y": return () => { return MessageHandler.GetImage(i)?.Y ?? 0.0; };
+                case "Name": return StringValueSetter(() => MessageHandler.GetImage(i)?.Name ?? MissingImage);
+                case "ToolTip": return StringValueSetter(() => MessageHandler.GetImage(i)?.DisplayName ?? MissingImage);
                 default: return () => { return 0.0; };
             }
         }
@@ -191,20 +167,10 @@ namespace PluginTwitchChat
             var i = info.Index;
             switch (info.Type)
             {
-                case "X": return () => { return messageHandler.GetGif(i)?.X ?? 0.0; };
-                case "Y": return () => { return messageHandler.GetGif(i)?.Y ?? 0.0; };
-                case "Name":
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetGif(i)?.Name ?? MissingImage;
-                        return 0.0;
-                    };
-                case "ToolTip":
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetGif(i)?.DisplayName ?? MissingImage;
-                        return 0.0;
-                    };
+                case "X": return () => { return MessageHandler.GetGif(i)?.X ?? 0.0; };
+                case "Y": return () => { return MessageHandler.GetGif(i)?.Y ?? 0.0; };
+                case "Name": return StringValueSetter(() => MessageHandler.GetGif(i)?.Name ?? MissingImage);
+                case "ToolTip": return StringValueSetter(() => MessageHandler.GetGif(i)?.DisplayName ?? MissingImage);
                 default: return () => { return 0.0; };
             }
         }
@@ -214,17 +180,11 @@ namespace PluginTwitchChat
             var i = info.Index;
             switch (info.Type)
             {
-                case "X": return () => { return messageHandler.GetLink(i)?.X ?? 0.0; };
-                case "Y": return () => { return messageHandler.GetLink(i)?.Y ?? 0.0; };
-                case "Width": return () => { return messageHandler.GetLink(i)?.Width ?? 0.0; };
-                case "Height": return () => { return messageHandler.GetLink(i)?.Height ?? 0.0; };
-                case "Name":
-                    StringValue = "";
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetLink(i) ?? "";
-                        return 0.0;
-                    };
+                case "X": return () => { return MessageHandler.GetLink(i)?.X ?? 0.0; };
+                case "Y": return () => { return MessageHandler.GetLink(i)?.Y ?? 0.0; };
+                case "Width": return () => { return MessageHandler.GetLink(i)?.Width ?? 0.0; };
+                case "Height": return () => { return MessageHandler.GetLink(i)?.Height ?? 0.0; };
+                case "Name": return StringValueSetter(() => MessageHandler.GetLink(i) ?? "");
                 default: return () => { return 0.0; };
             }
         }
@@ -236,24 +196,23 @@ namespace PluginTwitchChat
 
         internal void ExecuteBang(string args)
         {
-            if (twitchClient == null || tpe != "Main")
+            if (TwitchClient == null || measureType != "Main")
             {
                 return;
             }
 
             if (args.StartsWith("SendMessage"))
             {
-                twitchClient.SendMessage(args.Replace("SendMessage ", ""));
+                TwitchClient.SendMessage(args.Replace("SendMessage ", ""));
                 return;
             }
 
             if (args.StartsWith("JoinChannel"))
             {
-                string channel = args.Replace("JoinChannel ", "").ToLower();
-
+                var channel = args.Replace("JoinChannel ", "").ToLower();
                 if (channel == string.Empty)
                 {
-                    twitchClient.LeaveChannel();
+                    TwitchClient.LeaveChannel();
                     return;
                 }
 
@@ -267,7 +226,7 @@ namespace PluginTwitchChat
                     channel = "#" + channel;
                 }
 
-                twitchClient.JoinChannel(channel);
+                TwitchClient.JoinChannel(channel);
             }
         }
 
@@ -284,7 +243,7 @@ namespace PluginTwitchChat
 
         internal MeasureInfo GetInfo(Regex regex)
         {
-            var match = regex.Match(tpe).Groups;
+            var match = regex.Match(measureType).Groups;
 
             if (match.Count < 2)
             {

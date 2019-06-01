@@ -1,6 +1,6 @@
 ﻿namespace PluginTwitchChat
 {
-    public class Link : Word, Positioned
+    public class Link : Word, IPositioned
     {
         public string Url;
 

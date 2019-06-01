@@ -1,6 +1,6 @@
 ﻿namespace PluginTwitchChat
 {
-    public interface Positioned
+    public interface IPositioned
     {
         double X { get; set; }
         double Y { get; set; }

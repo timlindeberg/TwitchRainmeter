@@ -51,15 +51,13 @@ namespace PluginTwitchChat
                 }
 
                 // there might not be a valid pattern to use, so we have to make sure we have one
-                AutomationPattern[] patterns = URLBar.GetSupportedPatterns();
+                var patterns = URLBar.GetSupportedPatterns();
                 if (patterns.Length != 1)
                 {
                     return null;
                 }
 
-                string ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
-
-
+                var ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
                 // must match a domain name (and possibly "https://" in front)
                 if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
                 {
@@ -105,7 +103,7 @@ namespace PluginTwitchChat
 
         private AutomationElement GetMainChromeElement()
         {
-            foreach (Process chrome in Process.GetProcessesByName("chrome"))
+            foreach (var chrome in Process.GetProcessesByName("chrome"))
             {
                 // the chrome process must have a window
                 if (chrome.MainWindowHandle == IntPtr.Zero)
@@ -114,7 +112,7 @@ namespace PluginTwitchChat
                 }
 
                 // find the automation element
-                AutomationElement elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
+                var elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
 
                 var chromeMain = elm.FindFirst(TreeScope.Children, propertyNameChrome);
                 if (chromeMain == null)

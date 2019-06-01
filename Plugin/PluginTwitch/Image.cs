@@ -1,6 +1,6 @@
 ﻿namespace PluginTwitchChat
 {
-    public class Image : Word, Positioned
+    public class Image : Word, IPositioned
     {
         protected string _name;
         public virtual string Name { get { return _name; } private set { _name = value; } }

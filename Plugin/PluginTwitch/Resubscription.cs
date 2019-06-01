@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace PluginTwitchChat
 {
-    public class Resubscription : Message
+    public class Resubscription : IMessage
     {
         private readonly string Message;
         private readonly Tags Tags;

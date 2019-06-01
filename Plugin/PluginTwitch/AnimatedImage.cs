@@ -69,11 +69,11 @@ namespace PluginTwitchChat
                 {
                     using (var gif = System.Drawing.Image.FromStream(fs))
                     {
-                        int frameCount = gif.GetFrameCount(FrameDimension.Time);
-                        byte[] times = gif.GetPropertyItem(0x5100).Value;
-                        for (int frame = 0; frame < frameCount; frame++)
+                        var frameCount = gif.GetFrameCount(FrameDimension.Time);
+                        var times = gif.GetPropertyItem(0x5100).Value;
+                        for (var frame = 0; frame < frameCount; frame++)
                         {
-                            int duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
+                            var duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
                             durations.Add(duration);
                         }
                     }
@@ -95,7 +95,7 @@ namespace PluginTwitchChat
                 return;
             }
 
-            long time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             while (currentTime + durations[frameIndex] < time && frameIndex < durations.Count - 1)
             {
                 currentTime += durations[frameIndex++];

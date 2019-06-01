@@ -1,6 +1,6 @@
 ﻿namespace PluginTwitchChat
 {
-    public class PrivMessage : Message
+    public class PrivMessage : IMessage
     {
         private readonly string message;
         private readonly string sender;

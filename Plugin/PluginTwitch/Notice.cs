@@ -2,7 +2,7 @@
 
 namespace PluginTwitchChat
 {
-    public class Notice : Message
+    public class Notice : IMessage
     {
         private readonly string Message;
 
