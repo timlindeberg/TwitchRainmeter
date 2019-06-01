@@ -41,6 +41,10 @@ UseSeperator=1
 ; 1 to enable and 0 to disable.
 UseBetterTTVEmotes=1
 
+; Toggle whether FrankerFacez emotes are enabled.
+; 1 to enable and 0 to disable.
+UseFrankerFacezEmotes=1
+
 ; The maximum number of image that can be shown. A higher number can cost in 
 ; performance. Adjust this value according to how many image can appear in your
 ; chat window. The "correct" value will depend on the width and height of the 

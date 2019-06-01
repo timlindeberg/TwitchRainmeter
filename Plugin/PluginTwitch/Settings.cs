@@ -24,6 +24,7 @@ namespace PluginTwitchChat
 
         public readonly bool UseSeperator;
         public readonly bool UseBetterTTV;
+        public readonly bool UseFrankerFacez;
 
         public readonly string ErrorMessage;
 
@@ -43,6 +44,7 @@ namespace PluginTwitchChat
 
             UseSeperator = api.ReadInt("UseSeperator", 1) == 1;
             UseBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
+            UseFrankerFacez = api.ReadInt("UseFrankerFacezEmotes", 1) == 1;
 
             ErrorMessage = User == "" ? "User name is missing in settings files UserSettings.inc." :
                       /**/ Ouath == "" ? "Ouath is missing in settings files UserSettings.inc." :

@@ -25,6 +25,7 @@ namespace PluginTwitchChat
 
         internal void Reload(API api, ref double maxValue)
         {
+            API.Log(API.LogType.Debug, "LOL");
             tpe = api.ReadString("Type", "");
             switch (tpe)
             {

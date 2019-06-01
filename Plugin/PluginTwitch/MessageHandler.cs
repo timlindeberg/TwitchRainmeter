@@ -12,13 +12,6 @@ using Rainmeter;
 
 namespace PluginTwitchChat
 {
-    public class MessageHandlerSettings
-    {
-        public bool UseBetterTTVEmotes;
-        public bool UseSeperator;
-        public Size MaxSize;
-    }
-
     public class MessageHandler
     {
         public string String { get; set; }
@@ -242,27 +235,24 @@ namespace PluginTwitchChat
                 return;
             }
 
-            if (settings.UseBetterTTV)
+            var emote = downloader.GetNamedEmote(word);
+            if (emote != null)
             {
-                var betterTTVEmote = downloader.GetNamedEmote(word);
-                if (betterTTVEmote != null)
-                {
-                    words.Add(GetBetterTTVImage(betterTTVEmote));
-                    return;
-                }
+                words.Add(GetEmoteImage(emote));
+                return;
             }
 
             words.Add(new Word(word));
         }
 
-        private Image GetBetterTTVImage(TwitchDownloader.NamedEmote namedEmote)
+        private Image GetEmoteImage(TwitchDownloader.NamedEmote namedEmote)
         {
-            var name = namedEmote.name;
-            var displayName = name + " [ " + namedEmote.source + " ]";
-            switch (namedEmote.fileEnding)
+            var name = namedEmote.Name;
+            var description = namedEmote.Description;
+            switch (namedEmote.FileEnding)
             {
-                case TwitchDownloader.FileEnding.PNG: return new Image(name, displayName, ImageString);
-                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, displayName, ImageString, namedEmote.path, repeat: true);
+                case TwitchDownloader.FileEnding.PNG: return new Image(name, description, ImageString);
+                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, description, ImageString, namedEmote.Path, repeat: true);
                 default: return null;
             }
         }
