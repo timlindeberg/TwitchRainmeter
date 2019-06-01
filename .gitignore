@@ -14,8 +14,11 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
-@Resources/generated/
-@Resources/images/
+@Resources/generated/*
+@Resources/images/*
+!@Resources/images/_empty_1.png
+!@Resources/images/_empty_2.png
+!@Resources/images/_empty_3.png
 
 # Build results
 [Dd]ebug/
