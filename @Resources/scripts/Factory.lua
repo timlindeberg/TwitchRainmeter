@@ -13,7 +13,7 @@ function Initialize()
 	
 	local imageVars = {'Name', 'X', 'Y', 'ToolTip'}
 	local gifVars = {'Name', 'X', 'Y', 'ToolTip'}
-	local linkVars = {'Name', 'Url', 'X', 'Y', 'Width', 'Height'}
+	local linkVars = {'Name', 'X', 'Y', 'Width', 'Height'}
 	insert(t, "Image", imageVars, numImages)
 	insert(t, "Gif", gifVars, numGifs)
 	insert(t, "Link", linkVars, numLinks)

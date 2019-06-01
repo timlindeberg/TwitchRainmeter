@@ -211,13 +211,6 @@ namespace PluginTwitchChat
                 case "Y": return () => { return messageHandler.GetLink(i)?.Y ?? 0.0; };
                 case "Width": return () => { return messageHandler.GetLink(i)?.Width ?? 0.0; };
                 case "Height": return () => { return messageHandler.GetLink(i)?.Height ?? 0.0; };
-                case "Url":
-                    StringValue = "";
-                    return () =>
-                    {
-                        StringValue = messageHandler.GetLink(i)?.Url ?? "";
-                        return 0.0;
-                    };
                 case "Name":
                     StringValue = "";
                     return () =>

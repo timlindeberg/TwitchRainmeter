@@ -202,13 +202,13 @@ namespace PluginTwitchChat
             var index = urlMatch.Index;
             if (index == 0)
             {
-                words.Add(new Link(s));
+                words.Add(new Link(s, measurer));
                 return;
             }
 
             var s2 = s.Substring(0, index - 1);
             AddWord(words, s2, ref bits);
-            words.Add(new Link(s, index, s.Length - index));
+            words.Add(new Link(s, index, s.Length - index, measurer));
         }
 
         public void AddWord(List<Word> words, string word, ref int bits)
@@ -320,8 +320,8 @@ namespace PluginTwitchChat
                 return new Tuple<Word, Word>(new Word(s1), new Word(s2));
 
             var link = word as Link;
-            var l1 = new Link(link.Url, s1) { X = link.X, Width = settings.Width - link.X };
-            var l2 = new Link(link.Url, s2); // l2 will get positional information later.
+            var l1 = new Link(link.Url, s1, measurer) { X = link.X, Width = settings.Width - link.X };
+            var l2 = new Link(link.Url, s2, measurer); // l2 will get positional information later.
             return new Tuple<Word, Word>(l1, l2);
         }
 
@@ -417,6 +417,7 @@ namespace PluginTwitchChat
         private string CalculateImageString()
         {
             var spaces = " ";
+            var size = measurer.MeasureString(spaces);
             double height = measurer.GetHeight("A");
             double width = measurer.GetWidth(spaces);
             double previousWidth = height;
