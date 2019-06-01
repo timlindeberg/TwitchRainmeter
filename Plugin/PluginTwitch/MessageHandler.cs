@@ -173,7 +173,7 @@ namespace PluginTwitchChat
                     }
                 }
 
-                if (Char.IsWhiteSpace(msg[pos]))
+                if (char.IsWhiteSpace(msg[pos]))
                 {
                     AddWord(words, msg, ref bits, lastWord, pos - lastWord);
                     lastWord = pos + 1;
@@ -275,7 +275,7 @@ namespace PluginTwitchChat
                 {
                     var pos = word as Positioned;
                     pos.X = x;
-                    if(word is Image)
+                    if (word is Image)
                     {
                         pos.X += width * (1 - settings.ImageScale) / 2;
                     }

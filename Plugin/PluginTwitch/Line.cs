@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace PluginTwitchChat
@@ -19,8 +18,8 @@ namespace PluginTwitchChat
         }
         public bool IsEmpty { get { return Text == string.Empty; } }
 
-        private StringMeasurer measurer;
-        private StringBuilder sb;
+        private readonly StringMeasurer measurer;
+        private readonly StringBuilder sb;
 
         public Line(StringMeasurer measurer)
         {
@@ -30,7 +29,7 @@ namespace PluginTwitchChat
             Positioned = new List<Positioned>();
         }
 
-        public void Add(String s)
+        public void Add(string s)
         {
             Add(new Word(s));
         }

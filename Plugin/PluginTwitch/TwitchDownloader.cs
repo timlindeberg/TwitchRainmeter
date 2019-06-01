@@ -11,10 +11,8 @@ using Rainmeter;
 
 namespace PluginTwitchChat
 {
-
     public class TwitchDownloader
     {
-
         private const string GlobalBadgesUrl = @"https://badges.twitch.tv/v1/badges/global/display?language=en";
         private const string ChannelBadgesUrl = @"https://badges.twitch.tv/v1/badges/channels/{0}/display?language=en";
 
@@ -30,7 +28,6 @@ namespace PluginTwitchChat
 
         private const string FrankerFacezGlobalUrl = @"https://api.frankerfacez.com/v1/set/global";
         private const string FrankerFacezChannelUrl = @"https://api.frankerfacez.com/v1/room/{0}";
-
 
         private const string ClientID = "qr09gnapzzef6vgdat883tgank82y4h";
         private readonly string[] ViewerTypes = new[] { "moderators", "staff", "admins", "global_mods", "viewers" };
@@ -54,7 +51,7 @@ namespace PluginTwitchChat
             public string Path;
             public string Source;
 
-            public String Description
+            public string Description
             {
                 get { return Name + " [ " + Source + " ]"; }
             }
@@ -105,8 +102,8 @@ namespace PluginTwitchChat
         public NamedEmote GetNamedEmote(string word)
         {
             NamedEmote emote =
-                channelEmotes.ContainsKey(word) ? channelEmotes[word] : 
-                globalEmotes.ContainsKey(word) ? globalEmotes[word] : 
+                channelEmotes.ContainsKey(word) ? channelEmotes[word] :
+                globalEmotes.ContainsKey(word) ? globalEmotes[word] :
                 null;
 
             if (emote == null)
@@ -329,9 +326,9 @@ namespace PluginTwitchChat
 
         private string GetFilePath(string name, FileEnding fileEnding = FileEnding.PNG, int frame = -1)
         {
-            var f = Enum.GetName(typeof(FileEnding), fileEnding).ToLower();
-            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", settings.ImageDir, name, settings.ImageQuality, f) :
-                                 string.Format("{0}\\{1}-{2}_{3}.{4}", settings.ImageDir, name, frame, settings.ImageQuality, f);
+            var ending = Enum.GetName(typeof(FileEnding), fileEnding).ToLower();
+            return frame == -1 ? string.Format("{0}\\{1}_{2}.{3}", settings.ImageDir, name, settings.ImageQuality, ending) :
+                                 string.Format("{0}\\{1}-{2}_{3}.{4}", settings.ImageDir, name, frame, settings.ImageQuality, ending);
         }
 
         private string DownloadImage(string url, string fileName, bool replaceExistingFile, FileEnding fileEnding = FileEnding.PNG)

@@ -2,17 +2,16 @@
 {
     public class Word
     {
-
-        private string String;
+        private readonly string String;
 
         public Word(string s)
         {
-            this.String = s;
+            String = s;
         }
 
         public Word(string s, int start, int length)
         {
-            this.String = s.Substring(start, length);
+            String = s.Substring(start, length);
         }
 
         public override string ToString()

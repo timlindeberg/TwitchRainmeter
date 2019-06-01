@@ -8,7 +8,6 @@ namespace PluginTwitchChat
 {
     public class TwitchClient
     {
-
         public string Channel { get; private set; }
         public string ChannelStatus { get; private set; }
         public string Viewers { get; private set; }
@@ -16,7 +15,6 @@ namespace PluginTwitchChat
         public bool IsInChannel { get; private set; }
 
         private const string Server = "irc.twitch.tv";
-        private const int ChannelStatusInterval = 10000; // ms
 
         private readonly TwitchIrcClient client;
         private readonly TwitchIrcClient senderClient;
@@ -28,7 +26,7 @@ namespace PluginTwitchChat
         private bool isConnected;
         private long lastChannelUpdate;
 
-        public TwitchClient(Settings settings, MessageHandler messageHandler, TwitchDownloader imgDownloader)
+        public TwitchClient(Settings settings, MessageHandler messageHandler, TwitchDownloader twitchDownloader)
         {
             isConnected = false;
             client = new TwitchIrcClient();
@@ -36,7 +34,7 @@ namespace PluginTwitchChat
             Channel = ChannelStatus = Viewers = "";
 
             this.messageHandler = messageHandler;
-            this.twitchDownloader = imgDownloader;
+            this.twitchDownloader = twitchDownloader;
             this.settings = settings;
 
             lastChannelUpdate = 0;
@@ -119,7 +117,7 @@ namespace PluginTwitchChat
                 return;
 
             lastChannelUpdate = time;
-            if(updateChannelInfoTask == null || updateChannelInfoTask.IsCompleted)
+            if (updateChannelInfoTask == null || updateChannelInfoTask.IsCompleted)
                 updateChannelInfoTask = UpdateChannelInfoAsync();
         }
 
@@ -143,7 +141,7 @@ namespace PluginTwitchChat
             // We use another client with another connection to send the message.
             // This way the other client recieves a message with emote positions etc.
             // when the message is sent.
-            senderClient.SendPrivateMessage(new String[] { Channel }, msg);
+            senderClient.SendPrivateMessage(new string[] { Channel }, msg);
         }
 
         private void ClientRegistered(object sender, EventArgs e)
@@ -189,7 +187,7 @@ namespace PluginTwitchChat
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)
         {
-              messageHandler.AddMessage(new Notice(e.Text));
+            messageHandler.AddMessage(new Notice(e.Text));
         }
 
     }

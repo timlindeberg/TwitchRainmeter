@@ -2,7 +2,6 @@
 {
     public class Link : Word, Positioned
     {
-
         public string Url;
 
         public double X { get; set; }
@@ -15,7 +14,7 @@
 
         public Link(string url, string str, StringMeasurer measurer) : base(str)
         {
-            this.Url = url;
+            Url = url;
             var size = measurer.MeasureString(str);
             Width = size.Width;
             Height = size.Height;

@@ -6,13 +6,13 @@ namespace PluginTwitchChat
 {
     public class Resubscription : Message
     {
-        private string Message;
-        private Tags Tags;
+        private readonly string Message;
+        private readonly Tags Tags;
 
         public Resubscription(string message, string tags)
         {
-            this.Message = message;
-            this.Tags = new Tags(tags);
+            Message = message;
+            Tags = new Tags(tags);
         }
 
         public void AddLines(MessageHandler msgHandler)

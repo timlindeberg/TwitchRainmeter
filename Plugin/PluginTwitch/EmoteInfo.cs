@@ -9,9 +9,9 @@
 
         public EmoteInfo(string id, int start, int end)
         {
-            this.ID = id;
-            this.Start = start;
-            this.End = end;
+            ID = id;
+            Start = start;
+            End = end;
         }
     }
 }

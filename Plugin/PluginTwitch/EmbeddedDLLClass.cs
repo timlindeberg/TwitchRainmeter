@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Reflection;
-using System.Diagnostics;
 using System.ComponentModel;
 
 namespace Qromodyn
@@ -49,7 +46,7 @@ namespace Qromodyn
 
             // The temporary folder holds one or more of the temporary DLLs
             // It is made "unique" to avoid different versions of the DLL or architectures.
-            tempFolder = String.Format("{0}.{1}.{2}", an.Name, an.ProcessorArchitecture, an.Version);
+            tempFolder = string.Format("{0}.{1}.{2}", an.Name, an.ProcessorArchitecture, an.Version);
 
             string dirName = Path.Combine(Path.GetTempPath(), tempFolder);
             if (!Directory.Exists(dirName))

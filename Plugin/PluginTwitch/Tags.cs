@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace PluginTwitchChat
 {
     public class Tags
     {
-
-        private IDictionary<string, string> tagMap;
+        private readonly IDictionary<string, string> tagMap;
         public Tags(string tags)
         {
             tagMap = new Dictionary<string, string>();
@@ -21,8 +19,7 @@ namespace PluginTwitchChat
             }
         }
 
-
-        public String DisplayName
+        public string DisplayName
         {
             get { return tagMap.ContainsKey("display-name") ? tagMap["display-name"] : null; }
         }

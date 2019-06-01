@@ -7,12 +7,11 @@ namespace PluginTwitchChat
 {
     public class AnimatedImage : Image
     {
-
         public override string Name
         {
             get
             {
-                if(!finished)
+                if (!finished)
                     AdvanceFrameCounter();
                 return string.Format("{0}-{1}", _name, frameIndex);
             }
@@ -37,7 +36,7 @@ namespace PluginTwitchChat
 
         private void SetDurations()
         {
-            if(durations != null)
+            if (durations != null)
             {
                 return;
             }
@@ -89,7 +88,7 @@ namespace PluginTwitchChat
         private void AdvanceFrameCounter()
         {
             SetDurations();
-            if(durations == null)
+            if (durations == null)
                 return;
 
             long time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -101,7 +100,7 @@ namespace PluginTwitchChat
                 if (repeat)
                     frameIndex = 0;
                 else
-                   finished = true;
+                    finished = true;
             }
         }
     }

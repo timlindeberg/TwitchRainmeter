@@ -2,7 +2,6 @@
 {
     public class Image : Word, Positioned
     {
-
         protected string _name;
         public virtual string Name { get { return _name; } private set { _name = value; } }
         public string DisplayName;
@@ -14,8 +13,8 @@
 
         public Image(string name, string displayName, string imageString) : base(imageString)
         {
-            this._name = name;
-            this.DisplayName = displayName;
+            _name = name;
+            DisplayName = displayName;
         }
     }
 }

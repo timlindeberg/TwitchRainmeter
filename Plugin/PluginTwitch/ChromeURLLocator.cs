@@ -8,7 +8,6 @@ namespace PluginTwitchChat
 {
     public class ChromeURLLocator : WebBrowserURLLocator
     {
-
         private static readonly PropertyCondition propertyNameChrome = new PropertyCondition(AutomationElement.NameProperty, "Google Chrome");
         private static readonly PropertyCondition propertyNameEmpty = new PropertyCondition(AutomationElement.NameProperty, "");
         private static readonly PropertyCondition propertyNameMain = new PropertyCondition(AutomationElement.NameProperty, "main");

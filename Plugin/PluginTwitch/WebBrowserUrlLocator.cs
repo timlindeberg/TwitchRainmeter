@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace PluginTwitchChat
@@ -9,7 +8,7 @@ namespace PluginTwitchChat
         public abstract string GetActiveUrl();
 
         private static readonly Regex twitchChannelRegex = new Regex(@"https:\/\/www\.twitch\.tv\/(.*)");
-        private static readonly String[] notChannels = new[] { "directory", "store", "jobs", "settings", "subscriptions" };
+        private static readonly string[] notChannels = new[] { "directory", "store", "jobs", "settings", "subscriptions" };
 
         public string TwitchChannel
         {

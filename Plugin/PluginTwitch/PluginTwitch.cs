@@ -6,7 +6,6 @@ using System.Drawing;
 
 namespace PluginTwitchChat
 {
-
     internal class Measure
     {
         static readonly string MissingImage = "_empty";
@@ -66,7 +65,7 @@ namespace PluginTwitchChat
 
             var settings = new Settings(api);
 
-            if(settings.ErrorMessage != null)
+            if (settings.ErrorMessage != null)
             {
                 StringValue = settings.ErrorMessage;
                 return;
@@ -123,7 +122,7 @@ namespace PluginTwitchChat
                         return 0.0;
                     };
                 case "ViewerCount":
-                    return () => { return twitchClient.ViewerCount;};
+                    return () => { return twitchClient.ViewerCount; };
                 case "Main":
                     return () =>
                     {
@@ -255,10 +254,9 @@ namespace PluginTwitchChat
             }
         }
 
-
         internal class MeasureInfo
         {
-            private static string regex = @"([^\d]*)(\d*)?";
+            private static readonly string regex = @"([^\d]*)(\d*)?";
             public static readonly Regex Image = new Regex("Image" + regex);
             public static readonly Regex Gif = new Regex("Gif" + regex);
             public static readonly Regex Link = new Regex("Link" + regex);

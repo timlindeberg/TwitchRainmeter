@@ -2,9 +2,9 @@
 {
     public class PrivMessage : Message
     {
-        private string message;
-        private string sender;
-        private Tags tags;
+        private readonly string message;
+        private readonly string sender;
+        private readonly Tags tags;
 
         public PrivMessage(string sender, string message, string tags)
         {
