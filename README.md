@@ -48,7 +48,7 @@ Once you've joined the channel you can enter messages in the input field below t
 
 1. Download Visual Studio. Should work with 2015 and above (tested on 2019).
 2. Download Rainmeter. Has to be located in `Program Files`.
-3. Clone the repository.
+3. Clone the repository into `Documents\Rainmeter\Skins\Twitch`. This places all skin files in the correct place and makes it easier work with the Rainmeter `.ini` files. You can also place the repository else where but then you have to copy the `@Resources`, `Chat`, and `Viewers` folder into the above directory. 
 4. Run Visual Studio as administrator. This is needed to copy the `.dll` file for the plugin into the Rainmeter directory.
 5. Open `Plugin/PluginTwitch.sln`.
 6. Go to `Project` > `PluginTwitchChat Properties` > `Debug` and select your installed `Rainmeter.exe` under `Start external program`.
