@@ -5,7 +5,7 @@ right on your desktop with full emote and messaging support!
 
 GIF (sped up):
 
-![Twitch for Rainmeter in action](https://thumbs.gfycat.com/MetallicNeatBackswimmer-size_restricted.gif)
+![Twitch for Rainmeter in action](docs/chat.gif)
 
 ![Twitch for Rainmeter in action](http://i.imgur.com/ZoSM5jq.png)
 
