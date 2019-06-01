@@ -24,13 +24,7 @@ Please let me know of any issues or missing features you would like added!
 * Clickable links.
 * Animated cheers.
 * Supports BetterTTV emotes, both gifs and pngs.
-
-
-**Missing features**:
-* Automatic connection only works in the Chrome browser.
-* Some notifications are missing such as the message recieved when you type too fast 
-when a channel is in slow mode.
-* User color.
+* Supports FrankerFacez emotes.
 
 ## Installation
 
@@ -49,6 +43,16 @@ Just navigate to the Twitch channel you want to view and the Skin will automatic
 Manually entering a channel will override the automatic connection feature until the skin is reset.
 
 Once you've joined the channel you can enter messages in the input field below the chat.
+
+## Setting up the development environment
+
+1. Download Visual Studio. Should work with 2015 and above (tested on 2019).
+2. Download Rainmeter. Has to be located in `Program Files`.
+3. Clone the repository.
+4. Run Visual Studio as administrator. This is needed to copy the `.dll` file for the plugin into the Rainmeter directory.
+5. Open `Plugin/PluginTwitch.sln`.
+6. Go to `Project` > `PluginTwitchChat Properties` > `Debug` and select your installed `Rainmeter.exe` under `Start external program`.
+7. Select `Start debugging` to run the project in the Visual Studio debugger.
 
 ## Credits
 
