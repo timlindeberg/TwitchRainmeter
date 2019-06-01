@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Diagnostics;
 using System.Drawing;
-using System.Globalization;
-using Rainmeter;
 
 namespace PluginTwitchChat
 {

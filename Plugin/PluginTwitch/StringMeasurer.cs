@@ -1,17 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Drawing;
-using System.Diagnostics;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
 
 namespace PluginTwitchChat
 {
-
-
     public class StringMeasurer : IDisposable
     {
         [StructLayout(LayoutKind.Sequential, Size = 64)]

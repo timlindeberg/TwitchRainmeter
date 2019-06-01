@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Text;
 using IrcDotNet;
 using System.Threading;
-using System.Diagnostics;
-using System.Timers;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Threading.Tasks;
-using Rainmeter;
 
 namespace PluginTwitchChat
 {

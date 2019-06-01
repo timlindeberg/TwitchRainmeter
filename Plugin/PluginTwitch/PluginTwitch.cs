@@ -3,9 +3,6 @@ using System.Runtime.InteropServices;
 using Rainmeter;
 using System.Text.RegularExpressions;
 using System.Drawing;
-using System.Diagnostics;
-using System.Windows.Automation;
-
 
 namespace PluginTwitchChat
 {
