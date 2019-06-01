@@ -82,32 +82,17 @@ namespace PluginTwitchChat
 
         public Image GetImage(int index)
         {
-            if (index < 0 || index >= Images.Count)
-            {
-                return null;
-            }
-
-            return Images[index];
+            return Images.ElementAtOrDefault(index);
         }
 
         public AnimatedImage GetGif(int index)
         {
-            if (index < 0 || index >= Gifs.Count)
-            {
-                return null;
-            }
-
-            return Gifs[index];
+            return Gifs.ElementAtOrDefault(index);
         }
 
         public Link GetLink(int index)
         {
-            if (index < 0 || index >= Links.Count)
-            {
-                return null;
-            }
-
-            return Links[index];
+            return Links.ElementAtOrDefault(index);
         }
 
         public void Reset()
@@ -285,17 +270,7 @@ namespace PluginTwitchChat
                 var newString = isEmpty ? word : (line.Text + ' ' + word);
                 var newLen = measurer.GetWidth(newString);
 
-                var x = isEmpty ? len : len + spaceWidth;
-                var width = newLen - x;
-                if (word is IPositioned)
-                {
-                    var pos = word as IPositioned;
-                    pos.X = x;
-                    if (word is Image)
-                    {
-                        pos.X += width * (1 - settings.ImageScale) / 2;
-                    }
-                }
+                SetPosition(word, isEmpty ? len : len + spaceWidth, newLen);
 
                 if (newLen <= settings.Width)
                 {
@@ -328,18 +303,36 @@ namespace PluginTwitchChat
             return lines;
         }
 
+        private void SetPosition(Word word, double currentLength, double newLen)
+        {
+            if (!(word is IPositioned))
+            {
+                return;
+            }
+
+            var pos = word as IPositioned;
+            pos.X = currentLength;
+            if (word is Image)
+            {
+                var width = newLen - currentLength;
+                pos.X += width * (1 - settings.ImageScale) / 2;
+            }
+        }
+
         private Tuple<Word, Word> SplitWord(Word word, int start, string newString)
         {
             var breakPoint = FindBreakpoint(newString);
             var s1 = newString.Substring(start, breakPoint - start);
             var s2 = newString.Substring(breakPoint, newString.Length - breakPoint);
-            if (!(word is Link))
-                return new Tuple<Word, Word>(new Word(s1), new Word(s2));
+            if (word is Link)
+            {
+                var link = word as Link;
+                var l1 = new Link(link.Url, s1, measurer) { X = link.X, Width = settings.Width - link.X };
+                var l2 = new Link(link.Url, s2, measurer); // l2 will get positional information later.
+                return new Tuple<Word, Word>(l1, l2);
+            }
 
-            var link = word as Link;
-            var l1 = new Link(link.Url, s1, measurer) { X = link.X, Width = settings.Width - link.X };
-            var l2 = new Link(link.Url, s2, measurer); // l2 will get positional information later.
-            return new Tuple<Word, Word>(l1, l2);
+            return new Tuple<Word, Word>(new Word(s1), new Word(s2));
         }
 
         private int FindBreakpoint(string str)
@@ -349,11 +342,15 @@ namespace PluginTwitchChat
             while (start < end)
             {
                 var mid = (end + start) / 2;
-                var wordLen = measurer.GetWidth(str.Substring(0, mid));
-                if (wordLen <= settings.Width)
-                    start = mid + 1;
-                else
+                var wordLength = measurer.GetWidth(str.Substring(0, mid));
+                if (wordLength > settings.Width)
+                {
                     end = mid;
+                }
+                else
+                {
+                    start = mid + 1;
+                }
             }
             return start - 1;
         }
@@ -425,12 +422,12 @@ namespace PluginTwitchChat
         {
             Seperator = new Line(measurer);
             var sb = new StringBuilder("");
-            double w;
+            double width;
             do
             {
                 sb.Append(SeperatorSign);
-                w = measurer.GetWidth(sb);
-            } while (w < settings.Width);
+                width = measurer.GetWidth(sb);
+            } while (width < settings.Width);
             sb.Remove(0, 1);
             Seperator.Add(sb.ToString());
         }

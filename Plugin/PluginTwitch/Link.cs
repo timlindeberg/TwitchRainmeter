@@ -8,7 +8,7 @@
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
-        public Link(string s, int start, int len, StringMeasurer measurer) : this(s.Substring(start, len), measurer) { }
+        public Link(string content, int start, int len, StringMeasurer measurer) : this(content.Substring(start, len), measurer) { }
 
         public Link(string url, StringMeasurer measurer) : this(url, url, measurer) { }
 

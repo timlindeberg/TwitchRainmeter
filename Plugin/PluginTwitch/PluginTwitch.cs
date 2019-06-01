@@ -19,33 +19,33 @@ namespace PluginTwitchChat
         string measureType = "";
         Func<double> update;
 
-        internal void Reload(API api, ref double maxValue)
+        internal void Reload(API rm, ref double maxValue)
         {
-            measureType = api.ReadString("Type", "");
+            measureType = rm.ReadString("Type", "");
             switch (measureType)
             {
                 case "Main":
                     StringValue = "";
-                    ReloadMain(api);
+                    ReloadMain(rm);
                     break;
                 case "AutoConnector":
-                    ReloadAutoConnector(api);
+                    ReloadAutoConnector(rm);
                     break;
             }
 
             update = GetUpdateFunction();
         }
 
-        internal void ReloadAutoConnector(API api)
+        internal void ReloadAutoConnector(API rm)
         {
-            if (api.ReadDouble("ConnectAutomatically", 0.0) != 1.0)
+            if (rm.ReadDouble("ConnectAutomatically", 0.0) != 1.0)
             {
                 return;
             }
 
             if (UrlLocator == null)
             {
-                var webBrowser = api.ReadString("Browser", "").ToLower();
+                var webBrowser = rm.ReadString("Browser", "").ToLower();
                 switch (webBrowser)
                 {
                     case "chrome":
@@ -61,15 +61,14 @@ namespace PluginTwitchChat
             }
         }
 
-        internal void ReloadMain(API api)
+        internal void ReloadMain(API rm)
         {
             if (TwitchClient != null)
             {
                 return;
             }
 
-            var settings = new Settings(api);
-
+            var settings = new Settings(rm);
             if (settings.ErrorMessage != null)
             {
                 StringValue = settings.ErrorMessage;
@@ -117,8 +116,8 @@ namespace PluginTwitchChat
                 case "ChannelName": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel : "");
                 case "ChannelStatus": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.ChannelStatus : "");
                 case "Viewers": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers : "");
-                case "ViewerCount": return () => { return TwitchClient.ViewerCount; };
-                case "IsInChannel": return () => { return TwitchClient.IsInChannel ? 1.0 : 0.0; };
+                case "ViewerCount": return () => TwitchClient.ViewerCount;
+                case "IsInChannel": return () => TwitchClient.IsInChannel ? 1.0 : 0.0;
                 case "Main":
                     return StringValueSetter(() =>
                     {
@@ -144,48 +143,49 @@ namespace PluginTwitchChat
                 return GetLinkUpdateFunction(info);
             }
 
-            return () => { return 0.0; };
+            return () => 0.0;
         }
 
         internal Func<double> GetImageUpdateFunction(MeasureInfo info)
         {
-            var i = info.Index;
+            Func<Image> image = () => MessageHandler.GetImage(info.Index);
             switch (info.Type)
             {
-                case "Width": return () => { return MessageHandler.ImageSize.Width; };
-                case "Height": return () => { return MessageHandler.ImageSize.Height; };
-                case "X": return () => { return MessageHandler.GetImage(i)?.X ?? 0.0; };
-                case "Y": return () => { return MessageHandler.GetImage(i)?.Y ?? 0.0; };
-                case "Name": return StringValueSetter(() => MessageHandler.GetImage(i)?.Name ?? MissingImage);
-                case "ToolTip": return StringValueSetter(() => MessageHandler.GetImage(i)?.DisplayName ?? MissingImage);
-                default: return () => { return 0.0; };
+                case "Width": return () => MessageHandler.ImageSize.Width;
+                case "Height": return () => MessageHandler.ImageSize.Height;
+                case "X": return () => image()?.X ?? 0.0;
+                case "Y": return () => image()?.Y ?? 0.0;
+                case "Name": return StringValueSetter(() => image()?.Name ?? MissingImage);
+                case "ToolTip": return StringValueSetter(() => image()?.DisplayName ?? MissingImage);
+                default: return () => 0.0;
             }
         }
 
         internal Func<double> GetGifUpdateFunction(MeasureInfo info)
         {
-            var i = info.Index;
+            Func<AnimatedImage> gif = () => MessageHandler.GetGif(info.Index);
             switch (info.Type)
             {
-                case "X": return () => { return MessageHandler.GetGif(i)?.X ?? 0.0; };
-                case "Y": return () => { return MessageHandler.GetGif(i)?.Y ?? 0.0; };
-                case "Name": return StringValueSetter(() => MessageHandler.GetGif(i)?.Name ?? MissingImage);
-                case "ToolTip": return StringValueSetter(() => MessageHandler.GetGif(i)?.DisplayName ?? MissingImage);
-                default: return () => { return 0.0; };
+                case "X": return () => gif()?.X ?? 0.0;
+                case "Y": return () => gif()?.Y ?? 0.0;
+                case "Name": return StringValueSetter(() => gif()?.Name ?? MissingImage);
+                case "ToolTip": return StringValueSetter(() => gif()?.DisplayName ?? MissingImage);
+                default: return () => 0.0;
             }
         }
 
         internal Func<double> GetLinkUpdateFunction(MeasureInfo info)
         {
-            var i = info.Index;
+
+            Func<Link> link = () => MessageHandler.GetLink(info.Index);
             switch (info.Type)
             {
-                case "X": return () => { return MessageHandler.GetLink(i)?.X ?? 0.0; };
-                case "Y": return () => { return MessageHandler.GetLink(i)?.Y ?? 0.0; };
-                case "Width": return () => { return MessageHandler.GetLink(i)?.Width ?? 0.0; };
-                case "Height": return () => { return MessageHandler.GetLink(i)?.Height ?? 0.0; };
-                case "Name": return StringValueSetter(() => MessageHandler.GetLink(i) ?? "");
-                default: return () => { return 0.0; };
+                case "X": return () => link()?.X ?? 0.0;
+                case "Y": return () => link()?.Y ?? 0.0;
+                case "Width": return () => link()?.Width ?? 0.0;
+                case "Height": return () => link()?.Height ?? 0.0;
+                case "Name": return StringValueSetter(() => link() ?? "");
+                default: return () => 0.0;
             }
         }
 

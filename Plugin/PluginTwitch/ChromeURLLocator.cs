@@ -57,14 +57,14 @@ namespace PluginTwitchChat
                     return null;
                 }
 
-                var ret = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
+                var urlBarValue = ((ValuePattern)URLBar.GetCurrentPattern(patterns[0])).Current.Value;
                 // must match a domain name (and possibly "https://" in front)
-                if (!Regex.IsMatch(ret, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
+                if (!Regex.IsMatch(urlBarValue, @"^(https:\/\/)?[a-zA-Z0-9\-\.]+(\.[a-zA-Z]{2,4}).*$"))
                 {
                     return null;
                 }
 
-                return ret;
+                return urlBarValue;
             }
             catch
             {
@@ -86,12 +86,7 @@ namespace PluginTwitchChat
                 return null;
             }
 
-            AutomationElement bar = null;
-            if (!ManualWalkFailed)
-            {
-                bar = ManualWalk(mainChrome);
-            }
-
+            var bar = ManualWalkFailed ? null : ManualWalk(mainChrome);
             if (bar != null)
             {
                 return bar;
@@ -112,9 +107,9 @@ namespace PluginTwitchChat
                 }
 
                 // find the automation element
-                var elm = AutomationElement.FromHandle(chrome.MainWindowHandle);
+                var mainWindow = AutomationElement.FromHandle(chrome.MainWindowHandle);
 
-                var chromeMain = elm.FindFirst(TreeScope.Children, propertyNameChrome);
+                var chromeMain = mainWindow.FindFirst(TreeScope.Children, propertyNameChrome);
                 if (chromeMain == null)
                 {
                     continue; // not the right chrome.exe

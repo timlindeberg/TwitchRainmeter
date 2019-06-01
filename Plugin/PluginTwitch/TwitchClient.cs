@@ -171,8 +171,6 @@ namespace PluginTwitchChat
 
         private void JoinedChannel(object sender, IrcChannelEventArgs e)
         {
-            var localUser = (IrcLocalUser)sender;
-
             e.Channel.MessageReceived -= ChannelMessageReceived;
             e.Channel.MessageReceived += ChannelMessageReceived;
             e.Channel.NoticeReceived -= ChannelNoticeReceived;

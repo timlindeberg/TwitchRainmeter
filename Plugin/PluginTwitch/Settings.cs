@@ -23,23 +23,23 @@ namespace PluginTwitchChat
 
         public readonly string ErrorMessage;
 
-        public Settings(API api)
+        public Settings(API rm)
         {
-            User = api.ReadString("Username", "").ToLower();
-            Ouath = api.ReadString("Ouath", "");
-            FontFace = api.ReadString("FontFace", "");
-            ImageDir = api.ReadString("ImageDir", "");
-            Width = api.ReadInt("Width", 0);
-            Height = api.ReadInt("Height", 0);
-            FontSize = api.ReadInt("FontSize", 0);
-            ChannelUpdateTime = api.ReadInt("ChannelUpdateTime", 0);
-            MaxViewerNames = api.ReadInt("MaxViewerNames", 0);
-            ImageQuality = Clamp(api.ReadInt("ImageQuality", 1), 1, 3);
-            ImageScale = Clamp(api.ReadDouble("ImageScale", 0.9), 0.0, 1.0);
+            User = rm.ReadString("Username", "").ToLower();
+            Ouath = rm.ReadString("Ouath", "");
+            FontFace = rm.ReadString("FontFace", "");
+            ImageDir = rm.ReadString("ImageDir", "");
+            Width = rm.ReadInt("Width", 0);
+            Height = rm.ReadInt("Height", 0);
+            FontSize = rm.ReadInt("FontSize", 0);
+            ChannelUpdateTime = rm.ReadInt("ChannelUpdateTime", 0);
+            MaxViewerNames = rm.ReadInt("MaxViewerNames", 0);
+            ImageQuality = Clamp(rm.ReadInt("ImageQuality", 1), 1, 3);
+            ImageScale = Clamp(rm.ReadDouble("ImageScale", 0.9), 0.0, 1.0);
 
-            UseSeperator = api.ReadInt("UseSeperator", 1) == 1;
-            UseBetterTTV = api.ReadInt("UseBetterTTVEmotes", 1) == 1;
-            UseFrankerFacez = api.ReadInt("UseFrankerFacezEmotes", 1) == 1;
+            UseSeperator = rm.ReadInt("UseSeperator", 1) == 1;
+            UseBetterTTV = rm.ReadInt("UseBetterTTVEmotes", 1) == 1;
+            UseFrankerFacez = rm.ReadInt("UseFrankerFacezEmotes", 1) == 1;
 
             ErrorMessage = User == "" ? "User name is missing in settings files UserSettings.inc." :
                       /**/ Ouath == "" ? "Ouath is missing in settings files UserSettings.inc." :
