@@ -4,7 +4,7 @@
 ;=============================================================================;
 
 ; The width of the skin including chat and input fields
-Width=1020
+Width=600
 
 ; If set to 1 the plugin will automatically connect to the twitch channel that
 ; is being focused by the browser. Set to 0 to disable this feature. If a
@@ -20,14 +20,14 @@ ConnectAutomatically=1
 Browser=Chrome
 
 ; The location of your browser on the harddrive. If this is not set you won't
-; be able to click links in the chat.
+; be able to click links in the chat and automatic connection won't work.
 BrowserLocation=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
 
 ; The string to display over the channel input when you're not connected to a 
 ; channel. If you're using automatic connection you might want to set it to 
 ; nothing to completely hide the channel input when not connected to a channel.
 ; It will still be clickable.
-DefaultChannelInputString=""
+DefaultChannelInputString="Enter Channel..."
 
 ; Show a seperator to make notices and resubscriptions stand out more in chat.
 ; Example:

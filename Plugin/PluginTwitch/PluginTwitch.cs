@@ -25,7 +25,6 @@ namespace PluginTwitchChat
             switch (measureType)
             {
                 case "Main":
-                    StringValue = "";
                     ReloadMain(rm);
                     break;
                 case "AutoConnector":
@@ -119,12 +118,13 @@ namespace PluginTwitchChat
                 case "ViewerCount": return () => TwitchClient.ViewerCount;
                 case "IsInChannel": return () => TwitchClient.IsInChannel ? 1.0 : 0.0;
                 case "Main":
-                    return StringValueSetter(() =>
+                    return () =>
                     {
                         TwitchClient.Update();
                         MessageHandler.Update();
-                        return MessageHandler.String;
-                    });
+                        StringValue = MessageHandler.String;
+                        return 0.0;
+                    };
             }
 
             var info = GetInfo(MeasureInfo.Image);
@@ -176,7 +176,6 @@ namespace PluginTwitchChat
 
         internal Func<double> GetLinkUpdateFunction(MeasureInfo info)
         {
-
             Func<Link> link = () => MessageHandler.GetLink(info.Index);
             switch (info.Type)
             {
