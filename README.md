@@ -3,8 +3,6 @@
 Twitch Chat for Rainmeter is a plugin for Rainmeter used to view the Twitch chat
 right on your desktop with full emote and messaging support!
 
-GIF (sped up):
-
 ![Twitch for Rainmeter in action](docs/chat.gif)
 
 Please let me know of any issues or missing features you would like added!

@@ -1,3 +1,21 @@
+# 1.3 (2019-06-01)
+
+Features:
+ 
+ - Added support for FrankerFacez emotes.
+ - Added feature to round corners of images.
+ - Added another Skin (TwitchViewers) to show the current viewers in the chat.
+ - Two notices in a row will now be merged into one.
+ - Added support to have a border around the input field.
+ - Channel field now shows status as well.
+
+Bugfixes:
+
+  - Fixed issues with downloading images.
+  - Fixed crash when trying to open a gif that hasn't finished downloading yet.
+  - Fixed links not being clickable.
+  - Fixed slightly incorrect position of links.
+
 # 1.2 (2016-09-27)
 
 Features:
