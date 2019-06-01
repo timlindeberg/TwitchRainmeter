@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginTwitchChat", "PluginTwitch\PluginTwitchChat.csproj", "{D31F73ED-3978-44FA-B599-49584BA30D3A}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -10,12 +10,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginTwitchChat", "PluginT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StringMeasurer", "StringMeasurer\StringMeasure.vcxproj", "{1121C31E-F1D8-4E8C-BED1-B418E2D7B698}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}"
-EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -45,18 +40,14 @@ Global
 		{1121C31E-F1D8-4E8C-BED1-B418E2D7B698}.Release|x64.Build.0 = Release|x64
 		{1121C31E-F1D8-4E8C-BED1-B418E2D7B698}.Release|x86.ActiveCfg = Release|Win32
 		{1121C31E-F1D8-4E8C-BED1-B418E2D7B698}.Release|x86.Build.0 = Release|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Debug|x64.ActiveCfg = Debug|x64
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Debug|x64.Build.0 = Debug|x64
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Debug|x86.ActiveCfg = Debug|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Debug|x86.Build.0 = Debug|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Release|Any CPU.ActiveCfg = Release|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Release|x64.ActiveCfg = Release|x64
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Release|x64.Build.0 = Release|x64
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Release|x86.ActiveCfg = Release|Win32
-		{ED235517-C6D6-49CC-9ECC-C80E0069D9A5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EDF15083-6ED8-4C23-8FAC-5E40A8C08C68}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
