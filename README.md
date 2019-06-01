@@ -5,7 +5,7 @@ right on your desktop with full emote and messaging support!
 
 GIF (sped up):
 
-![Twitch for Rainmeter in action](docs/<chat class="gif"></chat>)
+![Twitch for Rainmeter in action](docs/chat.gif)
 
 Please let me know of any issues or missing features you would like added!
 
