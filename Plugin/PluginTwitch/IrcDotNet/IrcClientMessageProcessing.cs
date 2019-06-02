@@ -221,6 +221,30 @@ namespace IrcDotNet
         }
 
         /// <summary>
+        ///     Process PRIVMSG messages received from the server.
+        /// </summary>
+        /// <param name="message">The message received from the server.</param>
+        [MessageProcessor("whisper")]
+        protected internal void ProcessMessageWhisper(IrcMessage message)
+        {
+            // Get list of message targets.
+            Debug.Assert(message.Parameters[0] != null);
+            var targets = message.Parameters[0].Split(',').Select(n => GetMessageTarget(n)).ToArray();
+
+            // Get message text.
+            Debug.Assert(message.Parameters[1] != null);
+            var text = message.Parameters[1];
+
+            // Process message for each given target.
+            foreach (var curTarget in targets)
+            {
+                Debug.Assert(curTarget != null);
+                var messageHandler = curTarget as IIrcMessageReceiveHandler ?? localUser;
+                messageHandler.HandleMessageReceived(message.Source, targets, text, message.Tags);
+            }
+        }
+
+        /// <summary>
         ///     Process USERNOTICE messages received from the server.
         /// </summary>
         /// <param name="message">The message received from the server.</param>

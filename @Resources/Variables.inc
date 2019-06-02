@@ -162,6 +162,9 @@ ChatUserFontColor=A7D2FB
 ; The color of your own user name in the chat.
 ChatSelfFontColor=A7FBC3
 
+; The color of whisper highlights in chat.
+ChatWhisperFontColor=FBA7A7
+
 ; The color of links.
 LinkColor=D0E8FE
 

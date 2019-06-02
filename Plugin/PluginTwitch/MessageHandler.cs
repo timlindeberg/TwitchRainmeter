@@ -131,7 +131,6 @@ namespace PluginTwitchChat
 
         public List<Word> GetWords(string user, string msg, Tags tags)
         {
-
             var badges = new List<Image>();
             foreach (var badge in tags.Badges)
             {

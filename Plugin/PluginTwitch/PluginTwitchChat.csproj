@@ -96,6 +96,7 @@
     <Compile Include="ChromeURLLocator.cs" />
     <Compile Include="EmbeddedDLLClass.cs" />
     <Compile Include="EmoteInfo.cs" />
+    <Compile Include="WhisperMessage.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TwitchDownloader.cs" />
     <Compile Include="Line.cs" />

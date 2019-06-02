@@ -3,6 +3,7 @@ using System.Text;
 using IrcDotNet;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PluginTwitchChat
 {
@@ -167,6 +168,8 @@ namespace PluginTwitchChat
             client.LocalUser.JoinedChannel += JoinedChannel;
             client.LocalUser.LeftChannel -= LeftChannel;
             client.LocalUser.LeftChannel += LeftChannel;
+            client.LocalUser.MessageReceived -= MessageRecieved;
+            client.LocalUser.MessageReceived += MessageRecieved;
         }
 
         private void JoinedChannel(object sender, IrcChannelEventArgs e)
@@ -183,6 +186,11 @@ namespace PluginTwitchChat
         private void LeftChannel(object sender, IrcChannelEventArgs e)
         {
             IsInChannel = false;
+        }
+
+        private void MessageRecieved(object o, IrcMessageEventArgs args)
+        {
+            messageHandler.AddMessage(new WhisperMessage(args.Source.Name, args.Text, args.Tags));
         }
 
         private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)
