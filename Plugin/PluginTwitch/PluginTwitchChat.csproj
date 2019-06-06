@@ -91,31 +91,31 @@
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AnimatedImage.cs" />
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="ChromeURLLocator.cs" />
-    <Compile Include="EmbeddedDLLClass.cs" />
-    <Compile Include="EmoteInfo.cs" />
-    <Compile Include="WhisperMessage.cs" />
-    <Compile Include="Settings.cs" />
-    <Compile Include="TwitchDownloader.cs" />
-    <Compile Include="Line.cs" />
-    <Compile Include="Link.cs" />
-    <Compile Include="Message.cs" />
-    <Compile Include="Notice.cs" />
-    <Compile Include="Positioned.cs" />
-    <Compile Include="PrivMessage.cs" />
+    <Compile Include="source\MessageHandling\Words\AnimatedImage.cs" />
+    <Compile Include="source\AssemblyInfo.cs" />
+    <Compile Include="source\UrlLocator\ChromeURLLocator.cs" />
+    <Compile Include="source\Utils\EmbeddedDLLClass.cs" />
+    <Compile Include="source\MessageHandling\EmoteInfo.cs" />
+    <Compile Include="source\MessageHandling\Words\WhisperMessage.cs" />
+    <Compile Include="source\Settings.cs" />
+    <Compile Include="source\Twitch\TwitchDownloader.cs" />
+    <Compile Include="source\MessageHandling\Line.cs" />
+    <Compile Include="source\MessageHandling\Words\Link.cs" />
+    <Compile Include="source\MessageHandling\Messages\Message.cs" />
+    <Compile Include="source\MessageHandling\Messages\Notice.cs" />
+    <Compile Include="source\MessageHandling\Positioned.cs" />
+    <Compile Include="source\MessageHandling\Messages\PrivMessage.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Resubscription.cs" />
-    <Compile Include="StringMeasurer.cs" />
-    <Compile Include="Tags.cs" />
-    <Compile Include="WebBrowserUrlLocator.cs" />
-    <Compile Include="Word.cs" />
-    <Compile Include="Image.cs" />
+    <Compile Include="source\MessageHandling\Messages\Resubscription.cs" />
+    <Compile Include="source\MessageHandling\StringMeasurer.cs" />
+    <Compile Include="source\Twitch\Tags.cs" />
+    <Compile Include="source\UrlLocator\WebBrowserUrlLocator.cs" />
+    <Compile Include="source\MessageHandling\Words\Word.cs" />
+    <Compile Include="source\MessageHandling\Words\Image.cs" />
     <Compile Include="IrcDotNet\CircularBufferStream.cs" />
     <Compile Include="IrcDotNet\Collections\CollectionsUtilities.cs" />
     <Compile Include="IrcDotNet\Collections\ReadOnlyDictionary.cs" />
@@ -159,10 +159,10 @@
     <Compile Include="IrcDotNet\StandardIrcClient.cs" />
     <Compile Include="IrcDotNet\TextUtilities.cs" />
     <Compile Include="IrcDotNet\TwitchIrcClient.cs" />
-    <Compile Include="MessageHandler.cs" />
-    <Compile Include="RainmeterAPI.cs" />
-    <Compile Include="TwitchClient.cs" />
-    <Compile Include="PluginTwitch.cs" />
+    <Compile Include="source\MessageHandling\MessageHandler.cs" />
+    <Compile Include="source\Utils\RainmeterAPI.cs" />
+    <Compile Include="source\Twitch\TwitchClient.cs" />
+    <Compile Include="source\PluginTwitch.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="IrcDotNet\bin\Debug\net40\IrcDotNet.dll" />

@@ -4,7 +4,7 @@
 ;=============================================================================;
 
 ; The width of the skin including chat and input fields
-Width=600
+Width=1000
 
 ; If set to 1 the plugin will automatically connect to the twitch channel that
 ; is being focused by the browser. Set to 0 to disable this feature. If a
@@ -27,7 +27,7 @@ BrowserLocation=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
 ; channel. If you're using automatic connection you might want to set it to 
 ; nothing to completely hide the channel input when not connected to a channel.
 ; It will still be clickable.
-DefaultChannelInputString="Enter Channel..."
+DefaultChannelInputString=""
 
 ; Show a seperator to make notices and resubscriptions stand out more in chat.
 ; Example:
