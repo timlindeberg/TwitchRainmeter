@@ -96,12 +96,12 @@ namespace PluginTwitchChat
             }
 
             var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            while (currentTime + durations[frameIndex] < time && frameIndex < durations.Count - 1)
+            while (frameIndex < durations.Count && currentTime + durations[frameIndex] < time)
             {
                 currentTime += durations[frameIndex++];
             }
 
-            if (frameIndex >= durations.Count - 1)
+            if (frameIndex >= durations.Count)
             {
                 if (repeat)
                 {
