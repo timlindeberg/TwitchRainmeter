@@ -3,51 +3,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Drawing;
+using System.Threading.Tasks;
+using static PluginTwitchChat.StringMeasurer;
 
 namespace PluginTwitchChat
 {
-    public class MessageHandler
+    public class MessageFormatter
     {
-        public string String { get; set; }
+        public Line Seperator { get; private set; }
         public Size ImageSize { get; private set; }
-        public List<Image> Images { get; private set; }
-        public List<AnimatedImage> Gifs { get; private set; }
-        public List<Link> Links { get; private set; }
-        public Line Seperator;
-        public string ImageString;
 
-        private const string SeperatorSign = "─";
+        private string imageString;
+
 
         private static readonly Regex URLRegex = new Regex(@"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})");
         private static readonly Regex CheerRegex = new Regex(@"(?:^|\s)cheer(\d+)(?:\s|$)");
+        private static readonly string SeperatorSign = "─";
 
         private readonly TwitchDownloader downloader;
         private readonly StringMeasurer measurer;
-
-        private Settings settings;
-
-        private Line lastLine;
-        private Queue<Line> lineQueue;
-        private Queue<IMessage> msgQueue;
+        private readonly Settings settings;
 
         private readonly float spaceWidth;
 
-        public MessageHandler(Settings settings, StringMeasurer measurer, TwitchDownloader downloader)
+        public MessageFormatter(Settings settings, StringMeasurer measurer, TwitchDownloader downloader)
         {
             this.downloader = downloader;
             this.measurer = measurer;
             this.settings = settings;
 
-            lineQueue = new Queue<Line>();
-            msgQueue = new Queue<IMessage>();
-            Images = new List<Image>();
-            Gifs = new List<AnimatedImage>();
-            Links = new List<Link>();
-            String = "";
-
-            ImageString = CalculateImageString();
-            var imageWidth = measurer.GetWidth(ImageString);
+            imageString = CalculateImageString();
+            var imageWidth = measurer.GetWidth(imageString);
             var imageHeight = measurer.GetHeight("A");
             if (settings.UseSeperator)
             {
@@ -61,73 +47,24 @@ namespace PluginTwitchChat
             spaceWidth = measurer.GetWidth(" ");
         }
 
-        public void Update()
+
+        // Calculates the number of spaces that has the most similiar width and height.
+        // Used in place of images within the string
+        private string CalculateImageString()
         {
-            if (msgQueue.Count == 0)
+            var spaces = " ";
+            var height = measurer.GetHeight("A");
+            var width = measurer.GetWidth(spaces);
+            var previousWidth = height;
+            while (width < height)
             {
-                return;
+                spaces += " ";
+                previousWidth = width;
+                width = measurer.GetWidth(spaces);
             }
-
-            lock (msgQueue)
-            {
-                while (msgQueue.Count > 0)
-                {
-                    msgQueue.Dequeue().AddLines(this);
-                }
-            }
-
-            ResizeLineQueue();
-            UpdateData();
+            return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
         }
 
-        public Image GetImage(int index)
-        {
-            return Images.ElementAtOrDefault(index);
-        }
-
-        public AnimatedImage GetGif(int index)
-        {
-            return Gifs.ElementAtOrDefault(index);
-        }
-
-        public Link GetLink(int index)
-        {
-            return Links.ElementAtOrDefault(index);
-        }
-
-        public void Reset()
-        {
-            Images = new List<Image>();
-            Links = new List<Link>();
-            String = "";
-            lineQueue = new Queue<Line>();
-            msgQueue = new Queue<IMessage>();
-        }
-
-        public void AddSeperator(List<Line> lines)
-        {
-            lines.Add(Seperator);
-        }
-
-        public void AddLines(List<Line> lines)
-        {
-            foreach (var line in lines)
-            {
-                if (lastLine != Seperator || line != Seperator)
-                {
-                    lineQueue.Enqueue(line);
-                    lastLine = line;
-                }
-            }
-        }
-
-        public void AddMessage(IMessage msg)
-        {
-            lock (msgQueue)
-            {
-                msgQueue.Enqueue(msg);
-            }
-        }
 
         public List<Word> GetWords(string user, string msg, Tags tags)
         {
@@ -135,7 +72,7 @@ namespace PluginTwitchChat
             foreach (var badge in tags.Badges)
             {
                 var displayName = downloader.GetDescription(badge);
-                badges.Add(new Image(badge, displayName, ImageString));
+                badges.Add(new Image(badge, displayName, imageString));
             }
             var emotes = tags.Emotes;
             var prefix = new Word(string.Format("<{0}>:", user));
@@ -161,7 +98,7 @@ namespace PluginTwitchChat
                     {
                         downloader.DownloadEmote(emote.ID);
                         var displayName = msg.Substring(emote.Start, emote.Length + 1);
-                        var img = new Image(emote.ID, displayName, ImageString);
+                        var img = new Image(emote.ID, displayName, imageString);
                         words.Add(img);
                         pos = emote.End + 1;
                         lastWord = pos + 1;
@@ -224,7 +161,7 @@ namespace PluginTwitchChat
                 var gifPath = downloader.DownloadCheer(roundedBits);
                 var name = "cheer" + roundedBits;
                 var displayName = "Cheer" + bitsInCheer;
-                var imageString = ImageString + " " + bitsInCheer;
+                var imageString = this.imageString + " " + bitsInCheer;
                 var animatedImg = new AnimatedImage(name, displayName, imageString, gifPath, repeat: true);
                 words.Add(animatedImg);
                 return;
@@ -246,8 +183,8 @@ namespace PluginTwitchChat
             var description = namedEmote.Description;
             switch (namedEmote.FileEnding)
             {
-                case TwitchDownloader.FileEnding.PNG: return new Image(name, description, ImageString);
-                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, description, ImageString, namedEmote.Path, repeat: true);
+                case TwitchDownloader.FileEnding.PNG: return new Image(name, description, imageString);
+                case TwitchDownloader.FileEnding.GIF: return new AnimatedImage(name, description, imageString, namedEmote.Path, repeat: true);
                 default: return null;
             }
         }
@@ -354,67 +291,17 @@ namespace PluginTwitchChat
             return start - 1;
         }
 
-        // Resize the line queue to fit the maximum height
-        private void ResizeLineQueue()
+        private int RoundBits(int amount)
         {
-            var sb = new StringBuilder();
-            foreach (var line in lineQueue.ToList())
-            {
-                sb.AppendLine(line.Text);
-                var height = measurer.GetHeight(sb);
-                while (height > settings.Height && lineQueue.Count > 1) // Keep at least one line in the queue
-                {
-                    var firstLine = lineQueue.Dequeue();
-                    sb.Remove(0, firstLine.Text.Length + Environment.NewLine.Length);
-                    height = measurer.GetHeight(sb);
-                }
-            }
-        }
-
-        // Calculate Y positions and build final string
-        private void UpdateData()
-        {
-            var sb = new StringBuilder();
-
-            var positioned = new List<IPositioned>();
-            var currentHeight = 0.0;
-            foreach (var line in lineQueue)
-            {
-                var prevHeight = currentHeight;
-                sb.AppendLine(line.Text);
-                currentHeight = measurer.GetHeight(sb);
-
-                foreach (var pos in line.Positioned)
-                {
-                    var height = currentHeight - prevHeight;
-                    pos.Y = prevHeight + height * (1 - settings.ImageScale) / 2;
-                    positioned.Add(pos);
-                }
-            }
-            String = sb.ToString();
-            UpdatePositionedVars(positioned);
-        }
-
-        private void UpdatePositionedVars(List<IPositioned> positioned)
-        {
-            Images = new List<Image>();
-            Gifs = new List<AnimatedImage>();
-            Links = new List<Link>();
-            foreach (var pos in positioned)
-            {
-                if (pos is AnimatedImage)
-                {
-                    Gifs.Add(pos as AnimatedImage);
-                }
-                else if (pos is Image)
-                {
-                    Images.Add(pos as Image);
-                }
-                else if (pos is Link)
-                {
-                    Links.Add(pos as Link);
-                }
-            }
+            if (amount >= 10000)
+                return 10000;
+            if (amount >= 5000)
+                return 5000;
+            if (amount >= 1000)
+                return 1000;
+            if (amount >= 100)
+                return 100;
+            return 1;
         }
 
         private void CalculateSeperator()
@@ -429,36 +316,6 @@ namespace PluginTwitchChat
             } while (width < settings.Width);
             sb.Remove(0, 1);
             Seperator.Add(sb.ToString());
-        }
-
-        // Calculates the number of spaces that has the most similiar width and height.
-        // Used in place of images within the string
-        private string CalculateImageString()
-        {
-            var spaces = " ";
-            var height = measurer.GetHeight("A");
-            var width = measurer.GetWidth(spaces);
-            var previousWidth = height;
-            while (width < height)
-            {
-                spaces += " ";
-                previousWidth = width;
-                width = measurer.GetWidth(spaces);
-            }
-            return Math.Abs(previousWidth - height) <= Math.Abs(width - height) ? spaces.Substring(1) : spaces;
-        }
-
-        private int RoundBits(int amount)
-        {
-            if (amount >= 10000)
-                return 10000;
-            if (amount >= 5000)
-                return 5000;
-            if (amount >= 1000)
-                return 1000;
-            if (amount >= 100)
-                return 100;
-            return 1;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace PluginTwitchChat
+﻿using System.Collections.Generic;
+
+namespace PluginTwitchChat
 {
     public class WhisperMessage : IMessage
     {
@@ -14,13 +16,12 @@
             this.tags = new Tags(tags);
         }
 
-        public void AddLines(MessageHandler msgHandler)
+        public List<Line> GetLines(MessageFormatter messageFormatter)
         {
             var user = tags.DisplayName ?? sender;
-            var words = msgHandler.GetWords(user, message, tags);
+            var words = messageFormatter.GetWords(user, message, tags);
             words.Insert(0, new Word(WhisperPrefix));
-            var lines = msgHandler.WordWrap(words);
-            msgHandler.AddLines(lines);
+            return messageFormatter.WordWrap(words);
         }
     }
 }

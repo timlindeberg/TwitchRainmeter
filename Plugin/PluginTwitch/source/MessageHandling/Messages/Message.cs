@@ -1,7 +1,9 @@
-﻿namespace PluginTwitchChat
+﻿using System.Collections.Generic;
+
+namespace PluginTwitchChat
 {
     public interface IMessage
     {
-        void AddLines(MessageHandler msgHandler);
+        List<Line> GetLines(MessageFormatter messageFormatter);
     }
 }

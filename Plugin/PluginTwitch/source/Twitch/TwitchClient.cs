@@ -19,7 +19,7 @@ namespace PluginTwitchChat
 
         private readonly TwitchIrcClient client;
         private readonly TwitchIrcClient senderClient;
-        private readonly MessageHandler messageHandler;
+        private readonly TwitchChat twitchChat;
         private readonly TwitchDownloader twitchDownloader;
         private readonly Settings settings;
 
@@ -27,14 +27,14 @@ namespace PluginTwitchChat
         private bool isConnected;
         private long lastChannelUpdate;
 
-        public TwitchClient(Settings settings, MessageHandler messageHandler, TwitchDownloader twitchDownloader)
+        public TwitchClient(Settings settings, TwitchChat twitchChat, TwitchDownloader twitchDownloader)
         {
             isConnected = false;
             client = new TwitchIrcClient();
             senderClient = new TwitchIrcClient();
             Channel = ChannelStatus = Viewers = "";
 
-            this.messageHandler = messageHandler;
+            this.twitchChat = twitchChat;
             this.twitchDownloader = twitchDownloader;
             this.settings = settings;
 
@@ -62,13 +62,13 @@ namespace PluginTwitchChat
                     client.Connect(Server, false, ircRegistrationInfo);
                     if (!connectedEvent.Wait(waitTime))
                     {
-                        messageHandler.String = "Connection to Twitch timed out.";
+                        twitchChat.SetContent("Connection to Twitch timed out.");
                         return;
                     }
                 }
                 if (!registeredEvent.Wait(waitTime))
                 {
-                    messageHandler.String = "Could not connect to Twitch. Did provide a user name and Ouath?";
+                    twitchChat.SetContent("Could not connect to Twitch. Did provide a user name and Ouath?");
                     return;
                 }
                 isConnected = true;
@@ -100,7 +100,7 @@ namespace PluginTwitchChat
             }
 
             client.Channels.Leave(Channel);
-            messageHandler.Reset();
+            twitchChat.Reset();
             Channel = "";
         }
 
@@ -190,29 +190,29 @@ namespace PluginTwitchChat
 
         private void MessageRecieved(object o, IrcMessageEventArgs args)
         {
-            messageHandler.AddMessage(new WhisperMessage(args.Source.Name, args.Text, args.Tags));
+            twitchChat.AddMessage(new WhisperMessage(args.Source.Name, args.Text, args.Tags));
         }
 
         private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)
         {
-            messageHandler.AddMessage(new Resubscription(e.Text, e.Tags));
+            twitchChat.AddMessage(new Resubscription(e.Text, e.Tags));
         }
 
         private void ChannelMessageReceived(object sender, IrcMessageEventArgs e)
         {
             if (e.Source.Name == "twitchnotify")
             {
-                messageHandler.AddMessage(new Notice(e.Text));
+                twitchChat.AddMessage(new Notice(e.Text));
             }
             else
             {
-                messageHandler.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
+                twitchChat.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
             }
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)
         {
-            messageHandler.AddMessage(new Notice(e.Text));
+            twitchChat.AddMessage(new Notice(e.Text));
         }
 
     }

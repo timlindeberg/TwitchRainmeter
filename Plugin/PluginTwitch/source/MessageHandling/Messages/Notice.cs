@@ -11,14 +11,14 @@ namespace PluginTwitchChat
             Message = message;
         }
 
-        public void AddLines(MessageHandler msgHandler)
+        public List<Line> GetLines(MessageFormatter messageFormatter)
         {
-            var words = msgHandler.GetWords(Message);
+            var words = messageFormatter.GetWords(Message);
             var lines = new List<Line>();
-            msgHandler.AddSeperator(lines);
-            msgHandler.WordWrap(words, lines);
-            msgHandler.AddSeperator(lines);
-            msgHandler.AddLines(lines);
+            lines.Add(messageFormatter.Seperator);
+            messageFormatter.WordWrap(words, lines);
+            lines.Add(messageFormatter.Seperator);
+            return lines;
         }
     }
 }

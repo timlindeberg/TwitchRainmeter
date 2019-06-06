@@ -3,20 +3,23 @@ using System.Runtime.InteropServices;
 using Rainmeter;
 using System.Text.RegularExpressions;
 using System.Drawing;
+using System.Diagnostics;
 
 namespace PluginTwitchChat
 {
-    internal class Measure
+    internal class TwitchPlugin
     {
         static readonly string MissingImage = "_empty";
 
         static TwitchClient TwitchClient = null;
-        static MessageHandler MessageHandler = null;
+        static MessageFormatter MessageFormatter = null;
+        static TwitchChat TwitchChat = null;
         static WebBrowserURLLocator UrlLocator = null;
         static StringMeasurer StringMeasurer = null;
 
         string StringValue;
         string measureType = "";
+        static int i = 0;
         Func<double> update;
 
         internal void Reload(API rm, ref double maxValue)
@@ -77,8 +80,9 @@ namespace PluginTwitchChat
             var font = new Font(settings.FontFace, settings.FontSize);
             var twitchDownloader = new TwitchDownloader(settings);
             StringMeasurer = new StringMeasurer(font);
-            MessageHandler = new MessageHandler(settings, StringMeasurer, twitchDownloader);
-            TwitchClient = new TwitchClient(settings, MessageHandler, twitchDownloader);
+            MessageFormatter = new MessageFormatter(settings, StringMeasurer, twitchDownloader);
+            TwitchChat = new TwitchChat(settings, StringMeasurer, MessageFormatter);
+            TwitchClient = new TwitchClient(settings, TwitchChat, twitchDownloader);
         }
 
         internal void Cleanup()
@@ -90,12 +94,15 @@ namespace PluginTwitchChat
 
             TwitchClient?.Disconnect();
             TwitchClient = null;
-            StringMeasurer?.Dispose();
         }
 
         internal double Update()
         {
-            return TwitchClient == null ? 0.0 : update();
+            if(TwitchClient == null)
+            {
+                return 0.0;
+            }
+            return update();
         }
 
         internal Func<double> StringValueSetter(Func<string> f)
@@ -121,8 +128,8 @@ namespace PluginTwitchChat
                     return () =>
                     {
                         TwitchClient.Update();
-                        MessageHandler.Update();
-                        StringValue = MessageHandler.String;
+                        TwitchChat.Update();
+                        StringValue = TwitchChat.GetContent();
                         return 0.0;
                     };
             }
@@ -148,11 +155,11 @@ namespace PluginTwitchChat
 
         internal Func<double> GetImageUpdateFunction(MeasureInfo info)
         {
-            Func<Image> image = () => MessageHandler.GetImage(info.Index);
+            Func<Image> image = () => TwitchChat.GetImage(info.Index);
             switch (info.Type)
             {
-                case "Width": return () => MessageHandler.ImageSize.Width;
-                case "Height": return () => MessageHandler.ImageSize.Height;
+                case "Width": return () => MessageFormatter.ImageSize.Width;
+                case "Height": return () => MessageFormatter.ImageSize.Height;
                 case "X": return () => image()?.X ?? 0.0;
                 case "Y": return () => image()?.Y ?? 0.0;
                 case "Name": return StringValueSetter(() => image()?.Name ?? MissingImage);
@@ -163,7 +170,7 @@ namespace PluginTwitchChat
 
         internal Func<double> GetGifUpdateFunction(MeasureInfo info)
         {
-            Func<AnimatedImage> gif = () => MessageHandler.GetGif(info.Index);
+            Func<AnimatedImage> gif = () => TwitchChat.GetGif(info.Index);
             switch (info.Type)
             {
                 case "X": return () => gif()?.X ?? 0.0;
@@ -176,7 +183,7 @@ namespace PluginTwitchChat
 
         internal Func<double> GetLinkUpdateFunction(MeasureInfo info)
         {
-            Func<Link> link = () => MessageHandler.GetLink(info.Index);
+            Func<Link> link = () => TwitchChat.GetLink(info.Index);
             switch (info.Type)
             {
                 case "X": return () => link()?.X ?? 0.0;
@@ -268,13 +275,13 @@ namespace PluginTwitchChat
         [DllExport]
         public static void Initialize(ref IntPtr data, IntPtr rm)
         {
-            data = GCHandle.ToIntPtr(GCHandle.Alloc(new Measure()));
+            data = GCHandle.ToIntPtr(GCHandle.Alloc(new TwitchPlugin()));
         }
 
         [DllExport]
         public static void Finalize(IntPtr data)
         {
-            Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
+            TwitchPlugin measure = (TwitchPlugin)GCHandle.FromIntPtr(data).Target;
             measure.Cleanup();
             GCHandle.FromIntPtr(data).Free();
             if (StringBuffer != IntPtr.Zero)
@@ -287,21 +294,21 @@ namespace PluginTwitchChat
         [DllExport]
         public static void Reload(IntPtr data, IntPtr rm, ref double maxValue)
         {
-            Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
+            TwitchPlugin measure = (TwitchPlugin)GCHandle.FromIntPtr(data).Target;
             measure.Reload(new Rainmeter.API(rm), ref maxValue);
         }
 
         [DllExport]
         public static double Update(IntPtr data)
         {
-            Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
+            TwitchPlugin measure = (TwitchPlugin)GCHandle.FromIntPtr(data).Target;
             return measure.Update();
         }
 
         [DllExport]
         public static IntPtr GetString(IntPtr data)
         {
-            Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
+            TwitchPlugin measure = (TwitchPlugin)GCHandle.FromIntPtr(data).Target;
             if (StringBuffer != IntPtr.Zero)
             {
                 Marshal.FreeHGlobal(StringBuffer);
@@ -320,7 +327,7 @@ namespace PluginTwitchChat
         [DllExport]
         public static void ExecuteBang(IntPtr data, IntPtr args)
         {
-            Measure measure = (Measure)GCHandle.FromIntPtr(data).Target;
+            TwitchPlugin measure = (TwitchPlugin)GCHandle.FromIntPtr(data).Target;
             measure.ExecuteBang(Marshal.PtrToStringUni(args));
         }
     }

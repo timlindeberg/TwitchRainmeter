@@ -91,12 +91,13 @@
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="source\MessageHandling\MessageFormatter.cs" />
     <Compile Include="source\MessageHandling\Words\AnimatedImage.cs" />
     <Compile Include="source\AssemblyInfo.cs" />
     <Compile Include="source\UrlLocator\ChromeURLLocator.cs" />
     <Compile Include="source\Utils\EmbeddedDLLClass.cs" />
     <Compile Include="source\MessageHandling\EmoteInfo.cs" />
-    <Compile Include="source\MessageHandling\Words\WhisperMessage.cs" />
+    <Compile Include="source\MessageHandling\Messages\WhisperMessage.cs" />
     <Compile Include="source\Settings.cs" />
     <Compile Include="source\Twitch\TwitchDownloader.cs" />
     <Compile Include="source\MessageHandling\Line.cs" />
@@ -159,7 +160,7 @@
     <Compile Include="IrcDotNet\StandardIrcClient.cs" />
     <Compile Include="IrcDotNet\TextUtilities.cs" />
     <Compile Include="IrcDotNet\TwitchIrcClient.cs" />
-    <Compile Include="source\MessageHandling\MessageHandler.cs" />
+    <Compile Include="source\Twitch\TwitchChat.cs" />
     <Compile Include="source\Utils\RainmeterAPI.cs" />
     <Compile Include="source\Twitch\TwitchClient.cs" />
     <Compile Include="source\PluginTwitch.cs" />
