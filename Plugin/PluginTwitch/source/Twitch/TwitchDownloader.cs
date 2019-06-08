@@ -172,9 +172,12 @@ namespace PluginTwitchChat
 
         public string GetDescription(string badgeName)
         {
-            return badgeName.StartsWith("bits") ?
-                   "cheer " + badgeName.Replace("bits", "") :
-                   badgeDescriptions[badgeName];
+            if(badgeName.StartsWith("bits"))
+            {
+                return "Cheer " + badgeName.Replace("bits", "");
+            }
+
+            return badgeDescriptions.ContainsKey(badgeName) ? badgeDescriptions[badgeName] : "";
         }
 
         private void DownloadBadges(string badgeUrl)
@@ -208,11 +211,11 @@ namespace PluginTwitchChat
 
         private List<BadgeInfo> GetBadgeInfo(string badgeUrl)
         {
-            var urls = new List<BadgeInfo>();
+            var badgeInfo = new List<BadgeInfo>();
             var json = DownloadString(badgeUrl);
             if (json == "")
             {
-                return urls;
+                return badgeInfo;
             }
 
             dynamic data = jsonConverter.DeserializeObject(json);
@@ -227,7 +230,7 @@ namespace PluginTwitchChat
                         var value = entry.Value;
                         var url = value[BadgeQuality(settings.ImageQuality)] ?? value[BadgeQuality(1)];
                         var description = value["description"];
-                        urls.Add(new BadgeInfo
+                        badgeInfo.Add(new BadgeInfo
                         {
                             Name = name + version,
                             Url = url,
@@ -241,7 +244,7 @@ namespace PluginTwitchChat
                 API.Log(API.LogType.Warning, "Could not parse badges Json from Twitch: " + json);
             }
 
-            return urls;
+            return badgeInfo;
         }
 
         private void AddBetterTTVEmotes(Dictionary<string, NamedEmote> emotes, string url)
@@ -332,7 +335,10 @@ namespace PluginTwitchChat
         {
             try
             {
-                return CreateWebClient().DownloadString(url);
+                using (var webClient = CreateWebClient())
+                {
+                    return webClient.DownloadString(url);
+                }
             }
             catch (Exception ex) when (ex is WebException || ex is NotSupportedException)
             {
@@ -373,7 +379,10 @@ namespace PluginTwitchChat
                 try
                 {
                     var uri = new Uri(url);
-                    CreateWebClient().DownloadFile(uri, path);
+                    using (var webClient = CreateWebClient())
+                    {
+                        webClient.DownloadFile(uri, path);
+                    }
                     if (fileEnding == FileEnding.GIF)
                     {
                         SplitGifFrames(path, fileName);
