@@ -46,7 +46,7 @@ namespace PluginTwitchChat
             path = animatedImage.path;
         }
 
-        public IPositioned Copy()
+        public override IPositioned Copy()
         {
             return new AnimatedImage(this);
         }

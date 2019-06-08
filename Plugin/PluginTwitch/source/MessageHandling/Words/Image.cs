@@ -20,11 +20,11 @@
         public Image(Image image): base(image.String)
         {
             Positioned.CopyPosition(this, image);
-            _name = image.Name;
+            _name = image._name;
             DisplayName = image.DisplayName;
         }
 
-        public IPositioned Copy()
+        virtual public IPositioned Copy()
         {
             return new Image(this);
         }
