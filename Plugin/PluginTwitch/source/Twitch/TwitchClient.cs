@@ -85,11 +85,11 @@ namespace PluginTwitchChat
                 return;
             }
 
+            twitchDownloader.SetChannel(newChannel);
             Connect();
             LeaveChannel();
             client.Channels.Join(newChannel);
             Channel = newChannel;
-            twitchDownloader.SetChannel(newChannel);
         }
 
         public void LeaveChannel()
