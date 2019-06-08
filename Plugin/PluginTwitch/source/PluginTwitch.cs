@@ -19,7 +19,6 @@ namespace PluginTwitchChat
 
         string StringValue;
         string measureType = "";
-        static int i = 0;
         Func<double> update;
 
         internal void Reload(API rm, ref double maxValue)
@@ -98,11 +97,7 @@ namespace PluginTwitchChat
 
         internal double Update()
         {
-            if(TwitchClient == null)
-            {
-                return 0.0;
-            }
-            return update();
+            return TwitchClient == null ? 0.0 : update();
         }
 
         internal Func<double> StringValueSetter(Func<string> f)
@@ -119,17 +114,17 @@ namespace PluginTwitchChat
         {
             switch (measureType)
             {
-                case "ChannelName": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel : "");
+                case "ViewerCount":   return () => TwitchClient.ViewerCount;
+                case "IsInChannel":   return () => TwitchClient.IsInChannel ? 1.0 : 0.0;
+                case "ChannelName":   return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel       : "");
                 case "ChannelStatus": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.ChannelStatus : "");
-                case "Viewers": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers : "");
-                case "ViewerCount": return () => TwitchClient.ViewerCount;
-                case "IsInChannel": return () => TwitchClient.IsInChannel ? 1.0 : 0.0;
+                case "Viewers":       return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers       : "");
+                case "ChatText":      return StringValueSetter(() => TwitchChat.GetContent());
                 case "Main":
                     return () =>
                     {
                         TwitchClient.Update();
                         TwitchChat.Update();
-                        StringValue = TwitchChat.GetContent();
                         return 0.0;
                     };
             }
@@ -158,13 +153,13 @@ namespace PluginTwitchChat
             Func<Image> image = () => TwitchChat.GetImage(info.Index);
             switch (info.Type)
             {
-                case "Width": return () => MessageFormatter.ImageSize.Width;
-                case "Height": return () => MessageFormatter.ImageSize.Height;
-                case "X": return () => image()?.X ?? 0.0;
-                case "Y": return () => image()?.Y ?? 0.0;
-                case "Name": return StringValueSetter(() => image()?.Name ?? MissingImage);
+                case "Width":   return () => MessageFormatter.ImageSize.Width;
+                case "Height":  return () => MessageFormatter.ImageSize.Height;
+                case "X":       return () => image()?.X ?? 0.0;
+                case "Y":       return () => image()?.Y ?? 0.0;
+                case "Name":    return StringValueSetter(() => image()?.Name ?? MissingImage);
                 case "ToolTip": return StringValueSetter(() => image()?.DisplayName ?? MissingImage);
-                default: return () => 0.0;
+                default:        return () => 0.0;
             }
         }
 
@@ -173,11 +168,11 @@ namespace PluginTwitchChat
             Func<AnimatedImage> gif = () => TwitchChat.GetGif(info.Index);
             switch (info.Type)
             {
-                case "X": return () => gif()?.X ?? 0.0;
-                case "Y": return () => gif()?.Y ?? 0.0;
-                case "Name": return StringValueSetter(() => gif()?.Name ?? MissingImage);
+                case "X":       return () => gif()?.X ?? 0.0;
+                case "Y":       return () => gif()?.Y ?? 0.0;
+                case "Name":    return StringValueSetter(() => gif()?.Name ?? MissingImage);
                 case "ToolTip": return StringValueSetter(() => gif()?.DisplayName ?? MissingImage);
-                default: return () => 0.0;
+                default:        return () => 0.0;
             }
         }
 
@@ -186,12 +181,12 @@ namespace PluginTwitchChat
             Func<Link> link = () => TwitchChat.GetLink(info.Index);
             switch (info.Type)
             {
-                case "X": return () => link()?.X ?? 0.0;
-                case "Y": return () => link()?.Y ?? 0.0;
-                case "Width": return () => link()?.Width ?? 0.0;
+                case "X":      return () => link()?.X ?? 0.0;
+                case "Y":      return () => link()?.Y ?? 0.0;
+                case "Width":  return () => link()?.Width ?? 0.0;
                 case "Height": return () => link()?.Height ?? 0.0;
-                case "Name": return StringValueSetter(() => link() ?? "");
-                default: return () => 0.0;
+                case "Name":   return StringValueSetter(() => link() ?? "");
+                default:       return () => 0.0;
             }
         }
 
@@ -263,7 +258,7 @@ namespace PluginTwitchChat
                 index = int.Parse(match[2].Value);
             }
 
-            return new MeasureInfo() { Type = type, Index = index };
+            return new MeasureInfo { Type = type, Index = index };
         }
 
     }

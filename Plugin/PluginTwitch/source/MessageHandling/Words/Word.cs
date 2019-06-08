@@ -2,7 +2,7 @@
 {
     public class Word
     {
-        private readonly string String;
+        protected readonly string String;
 
         public Word(string s)
         {

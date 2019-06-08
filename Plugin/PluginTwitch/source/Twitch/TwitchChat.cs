@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace PluginTwitchChat
 {
@@ -27,6 +29,7 @@ namespace PluginTwitchChat
         private ChatData currentData;
         private ChatData nextData;
 
+
         public TwitchChat(Settings settings, StringMeasurer measurer, MessageFormatter messageFormatter)
         {
             this.measurer = measurer;
@@ -34,6 +37,12 @@ namespace PluginTwitchChat
             this.messageFormatter = messageFormatter;
 
             Reset();
+        }
+
+        public void Reset()
+        {
+            lineQueue = new Queue<Line>();
+            currentData = nextData = new ChatData();
         }
 
         public void Update()
@@ -64,12 +73,6 @@ namespace PluginTwitchChat
         public void SetContent(string content)
         {
             currentData.Content = nextData.Content = content;
-        }
-
-        public void Reset()
-        {
-            lineQueue = new Queue<Line>();
-            currentData = nextData = new ChatData();
         }
 
         public void AddMessage(IMessage msg)
@@ -121,8 +124,9 @@ namespace PluginTwitchChat
                 sb.AppendLine(line.Text);
                 currentHeight = measurer.GetHeight(sb);
 
-                foreach (var pos in line.Positioned)
+                foreach (var originalPos in line.Positioned)
                 {
+                    var pos = originalPos.Copy();
                     var height = currentHeight - prevHeight;
                     pos.Y = prevHeight + height * (1 - settings.ImageScale) / 2;
                     if (pos is AnimatedImage)

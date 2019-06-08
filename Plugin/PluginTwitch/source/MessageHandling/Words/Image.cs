@@ -16,5 +16,17 @@
             _name = name;
             DisplayName = displayName;
         }
+
+        public Image(Image image): base(image.String)
+        {
+            Positioned.CopyPosition(this, image);
+            _name = image.Name;
+            DisplayName = image.DisplayName;
+        }
+
+        public IPositioned Copy()
+        {
+            return new Image(this);
+        }
     }
 }

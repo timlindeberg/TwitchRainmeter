@@ -20,6 +20,17 @@
             Height = size.Height;
         }
 
+        public Link(Link link): base(link.String)
+        {
+            Url = Url;
+            Positioned.CopyPosition(this, link);
+        }
+
+        public IPositioned Copy()
+        {
+            return new Link(this);
+        }
+
         public override string ToString()
         {
             return string.Format("Link({0})", Url);

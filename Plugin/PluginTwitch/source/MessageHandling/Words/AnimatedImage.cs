@@ -36,6 +36,21 @@ namespace PluginTwitchChat
             SetDurations();
         }
 
+        public AnimatedImage(AnimatedImage animatedImage): base(animatedImage)
+        {
+            durations = animatedImage.durations;
+            frameIndex = animatedImage.frameIndex;
+            currentTime = animatedImage.currentTime;
+            finished = animatedImage.finished;
+            repeat = animatedImage.repeat;
+            path = animatedImage.path;
+        }
+
+        public IPositioned Copy()
+        {
+            return new AnimatedImage(this);
+        }
+
         private void SetDurations()
         {
             if (durations != null)
@@ -52,7 +67,7 @@ namespace PluginTwitchChat
             {
                 durations = ReadDurations();
             }
-            catch (System.IO.IOException)
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.ArgumentException)
             {
                 return;
             }
@@ -65,22 +80,15 @@ namespace PluginTwitchChat
 
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
-                try
+                using (var gif = System.Drawing.Image.FromStream(fs))
                 {
-                    using (var gif = System.Drawing.Image.FromStream(fs))
+                    var frameCount = gif.GetFrameCount(FrameDimension.Time);
+                    var times = gif.GetPropertyItem(0x5100).Value;
+                    for (var frame = 0; frame < frameCount; frame++)
                     {
-                        var frameCount = gif.GetFrameCount(FrameDimension.Time);
-                        var times = gif.GetPropertyItem(0x5100).Value;
-                        for (var frame = 0; frame < frameCount; frame++)
-                        {
-                            var duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
-                            durations.Add(duration);
-                        }
+                        var duration = BitConverter.ToInt32(times, 4 * frame) * 10; // to ms
+                        durations.Add(duration);
                     }
-                }
-                catch (System.ArgumentException)
-                {
-                    return null;
                 }
             }
 
