@@ -130,36 +130,6 @@ namespace PluginTwitchChat
             return parsed?["status"] ?? "";
         }
 
-        public List<string> GetViewers(string channel)
-        {
-            var viewers = new List<string>();
-
-            channel = channel.Replace("#", "");
-            var url = string.Format(ChattersUrl, channel);
-            var json = DownloadString(url);
-
-            if (json == string.Empty)
-            {
-                return viewers;
-            }
-
-            dynamic data = jsonConverter.DeserializeObject(json);
-            try
-            {
-                var chatters = data["chatters"];
-                foreach (var type in ViewerTypes)
-                {
-                    viewers.AddRange(chatters[type]);
-                }
-            }
-            catch
-            {
-                API.Log(API.LogType.Warning, "Could not parse viewers Json from Twitch: " + json);
-            }
-
-            return viewers;
-        }
-
         public string DownloadCheer(int roundedBits)
         {
             var color = CheerColor(roundedBits);

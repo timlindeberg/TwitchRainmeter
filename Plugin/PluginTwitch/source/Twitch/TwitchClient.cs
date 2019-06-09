@@ -24,7 +24,6 @@ namespace PluginTwitchChat
         private readonly Settings settings;
 
         private Task updateChannelInfoTask;
-        private Task connectTask;
         private bool isConnected;
         private long lastChannelUpdate;
 
@@ -90,9 +89,8 @@ namespace PluginTwitchChat
             Connect();
             LeaveChannel();
             client.Channels.Join(newChannel);
+            ChannelStatus = twitchDownloader.GetChannelStatus(newChannel);
             Channel = newChannel;
-            twitchChat.SetContent("");
-            connectTask = null;
         }
 
         public void LeaveChannel()
@@ -121,38 +119,22 @@ namespace PluginTwitchChat
 
         public void Update()
         {
-            if (!IsInChannel || settings.ChannelUpdateTime == -1)
+            if (!IsInChannel || settings.ChannelStatusUpdateTime == -1)
             {
                 return;
             }
 
             var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            if (time < lastChannelUpdate + settings.ChannelUpdateTime)
+            if (time < lastChannelUpdate + settings.ChannelStatusUpdateTime)
             {
                 return;
             }
 
             lastChannelUpdate = time;
             if (updateChannelInfoTask == null || updateChannelInfoTask.IsCompleted)
-                updateChannelInfoTask = UpdateChannelInfoAsync();
-        }
-
-        private Task UpdateChannelInfoAsync()
-        {
-            return Task.Run(() =>
             {
-                ChannelStatus = twitchDownloader.GetChannelStatus(Channel);
-
-                var viewers = twitchDownloader.GetViewers(Channel);
-                ViewerCount = viewers.Count;
-                var sb = new StringBuilder();
-                for (int i = 0; i < Math.Min(ViewerCount, settings.MaxViewerNames); i++)
-                {
-                    sb.AppendLine(viewers[i]);
-                }
-
-                Viewers = sb.ToString();
-            });
+                updateChannelInfoTask = Task.Run(() => ChannelStatus = twitchDownloader.GetChannelStatus(Channel));
+            }
         }
 
         public void SendMessage(string msg)
@@ -165,24 +147,26 @@ namespace PluginTwitchChat
 
         private void ClientRegistered(object sender, EventArgs e)
         {
-            var client = (IrcClient)sender;
+            var localUser = ((IrcClient)sender).LocalUser;
 
-            client.LocalUser.JoinedChannel -= JoinedChannel;
-            client.LocalUser.JoinedChannel += JoinedChannel;
-            client.LocalUser.LeftChannel -= LeftChannel;
-            client.LocalUser.LeftChannel += LeftChannel;
-            client.LocalUser.MessageReceived -= MessageRecieved;
-            client.LocalUser.MessageReceived += MessageRecieved;
+            localUser.JoinedChannel -= JoinedChannel;
+            localUser.JoinedChannel += JoinedChannel;
+            localUser.LeftChannel -= LeftChannel;
+            localUser.LeftChannel += LeftChannel;
+            localUser.MessageReceived -= MessageRecieved;
+            localUser.MessageReceived += MessageRecieved;
         }
 
         private void JoinedChannel(object sender, IrcChannelEventArgs e)
         {
-            e.Channel.MessageReceived -= ChannelMessageReceived;
-            e.Channel.MessageReceived += ChannelMessageReceived;
-            e.Channel.NoticeReceived -= ChannelNoticeReceived;
-            e.Channel.NoticeReceived += ChannelNoticeReceived;
-            e.Channel.UserNoticeReceived -= UserNoticeMessageRecieved;
-            e.Channel.UserNoticeReceived += UserNoticeMessageRecieved;
+            var channel = e.Channel;
+
+            channel.MessageReceived -= ChannelMessageReceived;
+            channel.MessageReceived += ChannelMessageReceived;
+            channel.NoticeReceived -= ChannelNoticeReceived;
+            channel.NoticeReceived += ChannelNoticeReceived;
+            channel.UserNoticeReceived -= UserNoticeMessageRecieved;
+            channel.UserNoticeReceived += UserNoticeMessageRecieved;
             IsInChannel = true;
         }
 

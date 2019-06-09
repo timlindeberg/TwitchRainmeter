@@ -12,8 +12,7 @@ namespace PluginTwitchChat
         public readonly int Width;
         public readonly int Height;
         public readonly int FontSize;
-        public readonly int ChannelUpdateTime;
-        public readonly int MaxViewerNames;
+        public readonly int ChannelStatusUpdateTime;
         public readonly int ImageQuality;
         public readonly double ImageScale;
 
@@ -32,8 +31,7 @@ namespace PluginTwitchChat
             Width = rm.ReadInt("Width", 0);
             Height = rm.ReadInt("Height", 0);
             FontSize = rm.ReadInt("FontSize", 0);
-            ChannelUpdateTime = rm.ReadInt("ChannelUpdateTime", 0);
-            MaxViewerNames = rm.ReadInt("MaxViewerNames", 0);
+            ChannelStatusUpdateTime = rm.ReadInt("ChannelStatusUpdateTime", 0);
             ImageQuality = Clamp(rm.ReadInt("ImageQuality", 1), 1, 3);
             ImageScale = Clamp(rm.ReadDouble("ImageScale", 0.9), 0.0, 1.0);
 

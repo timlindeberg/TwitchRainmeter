@@ -115,11 +115,9 @@ namespace PluginTwitchChat
         {
             switch (measureType)
             {
-                case "ViewerCount":   return () => TwitchClient.ViewerCount;
                 case "IsInChannel":   return () => TwitchClient.IsInChannel ? 1.0 : 0.0;
                 case "ChannelName":   return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel       : "");
                 case "ChannelStatus": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.ChannelStatus : "");
-                case "Viewers":       return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers       : "");
                 case "Main":
                     return () =>
                     {
