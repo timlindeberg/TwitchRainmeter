@@ -24,6 +24,7 @@ namespace PluginTwitchChat
         private readonly Settings settings;
 
         private Task updateChannelInfoTask;
+        private Task connectTask;
         private bool isConnected;
         private long lastChannelUpdate;
 
@@ -90,6 +91,8 @@ namespace PluginTwitchChat
             LeaveChannel();
             client.Channels.Join(newChannel);
             Channel = newChannel;
+            twitchChat.SetContent("");
+            connectTask = null;
         }
 
         public void LeaveChannel()
@@ -190,29 +193,37 @@ namespace PluginTwitchChat
 
         private void MessageRecieved(object o, IrcMessageEventArgs args)
         {
-            twitchChat.AddMessage(new WhisperMessage(args.Source.Name, args.Text, args.Tags));
+            AddMessage(new WhisperMessage(args.Source.Name, args.Text, args.Tags));
         }
 
         private void UserNoticeMessageRecieved(object sender, IrcMessageEventArgs e)
         {
-            twitchChat.AddMessage(new Resubscription(e.Text, e.Tags));
+            AddMessage(new Resubscription(e.Text, e.Tags));
         }
 
         private void ChannelMessageReceived(object sender, IrcMessageEventArgs e)
         {
             if (e.Source.Name == "twitchnotify")
             {
-                twitchChat.AddMessage(new Notice(e.Text));
+                AddMessage(new Notice(e.Text));
             }
             else
             {
-                twitchChat.AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
+                AddMessage(new PrivMessage(e.Source.Name, e.Text, e.Tags));
             }
         }
 
         private void ChannelNoticeReceived(object sender, IrcMessageEventArgs e)
         {
-            twitchChat.AddMessage(new Notice(e.Text));
+            AddMessage(new Notice(e.Text));
+        }
+
+        private void AddMessage(IMessage message)
+        {
+            if(Channel != "")
+            {
+                twitchChat.AddMessage(message);
+            }
         }
 
     }
