@@ -76,6 +76,7 @@ namespace PluginTwitchChat
                 return;
             }
 
+
             var font = new Font(settings.FontFace, settings.FontSize);
             var twitchDownloader = new TwitchDownloader(settings);
             StringMeasurer = new StringMeasurer(font);
@@ -119,12 +120,12 @@ namespace PluginTwitchChat
                 case "ChannelName":   return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Channel       : "");
                 case "ChannelStatus": return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.ChannelStatus : "");
                 case "Viewers":       return StringValueSetter(() => TwitchClient.IsInChannel ? TwitchClient.Viewers       : "");
-                case "ChatText":      return StringValueSetter(() => TwitchChat.GetContent());
                 case "Main":
                     return () =>
                     {
                         TwitchClient.Update();
                         TwitchChat.Update();
+                        StringValue = TwitchChat.GetContent();
                         return 0.0;
                     };
             }

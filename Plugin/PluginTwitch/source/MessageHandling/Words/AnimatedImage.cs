@@ -40,10 +40,11 @@ namespace PluginTwitchChat
         {
             durations = animatedImage.durations;
             frameIndex = animatedImage.frameIndex;
-            currentTime = animatedImage.currentTime;
             finished = animatedImage.finished;
             repeat = animatedImage.repeat;
             path = animatedImage.path;
+
+            currentTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
         }
 
         public override IPositioned Copy()
